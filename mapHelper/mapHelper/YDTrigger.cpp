@@ -563,7 +563,6 @@ bool YDTrigger::onActionToJass(std::string& output,ActionNodePtr node, std::stri
 	}
 	case "YDWERegisterTriggerFlush"s_hash:
 	{
-		ActionNodePtr parent = node->getParentNode();
 
 		ActionNodePtr ptr = node->getParentNode();
 		bool isInTrigger = false;

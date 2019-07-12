@@ -1599,92 +1599,92 @@ std::string TriggerEditor::convertTrigger(Trigger* trigger)
 		m_ydweTrigger->onRegisterTrigger(events, root->getName(), trigger_variable_name);
 	}
 
-	std::vector<ActionNodePtr> list;
-	root->getChildNodeList(list);
+std::vector<ActionNodePtr> list;
+root->getChildNodeList(list);
 
-	for (auto& node : list)
+for (auto& node : list)
+{
+	Action* action = node->getAction();
+	std::string name = action->name;
+
+	switch (node->getActionType())
 	{
-		Action* action = node->getAction();
-		std::string name = action->name;
-
-		switch (node->getActionType())
+	case Action::Type::event:
+		if (m_ydweTrigger->isEnable())
 		{
-		case Action::Type::event:
-			if (m_ydweTrigger->isEnable())
-			{
-				//返回false 跳过注册事件
-				if (!m_ydweTrigger->onRegisterEvent(events,node))
-					continue;
-
-			}
-			if (node->getNameId() == "MapInitializationEvent"s_hash )
-			{
-				m_initTriggerTable[trigger] = true;
+			//返回false 跳过注册事件
+			if (!m_ydweTrigger->onRegisterEvent(events, node))
 				continue;
-			}
-			events += "\tcall " + getBaseName(node) + "(" + trigger_variable_name;
 
-			for (size_t k = 0; k < action->param_count; k++)
-			{
-				Parameter* param = action->parameters[k];
-
-
-				auto type { std::string(param->type_name) };
-
-				events += ", ";
-				events += convertParameter(param, node, pre_actions);
-			}
-			events += ")\n";
-			if (m_ydweTrigger->isEnable())
-			{
-				m_ydweTrigger->onRegisterEvent2(events,node);
-			}
-
-			break;
-		case Action::Type::condition:
-			conditions += "\tif (not (" + convertAction(node, pre_actions, true) + ")) then\n";
-			conditions += "\treturn false\n";
-			conditions += "\tendif\n";
-			break;
-		case Action::Type::action:
-			space_stack = 1;
-			action_code += spaces[space_stack];
-
-			action_code += convertAction(node, pre_actions, false) + "\n";
-			break;
-		default: 
-			break;
 		}
+		if (node->getNameId() == "MapInitializationEvent"s_hash)
+		{
+			m_initTriggerTable[trigger] = true;
+			continue;
+		}
+		events += "\tcall " + getBaseName(node) + "(" + trigger_variable_name;
+
+		for (size_t k = 0; k < action->param_count; k++)
+		{
+			Parameter* param = action->parameters[k];
+
+
+			auto type{ std::string(param->type_name) };
+
+			events += ", ";
+			events += convertParameter(param, node, pre_actions);
+		}
+		events += ")\n";
+		if (m_ydweTrigger->isEnable())
+		{
+			m_ydweTrigger->onRegisterEvent2(events, node);
+		}
+
+		break;
+	case Action::Type::condition:
+		conditions += "\tif (not (" + convertAction(node, pre_actions, true) + ")) then\n";
+		conditions += "\treturn false\n";
+		conditions += "\tendif\n";
+		break;
+	case Action::Type::action:
+		space_stack = 1;
+		action_code += spaces[space_stack];
+
+		action_code += convertAction(node, pre_actions, false) + "\n";
+		break;
+	default:
+		break;
 	}
+}
 
-	if (m_ydweTrigger->isEnable())
-	{
-		actions += action_code;
-		m_ydweTrigger->onActionsToFuncEnd(actions,root);
-	}
-	else
-	{
-		actions += action_code;
-	}
-	
-
-	actions += "endfunction\n\n";
-
-	if (!conditions.empty()) {
-		conditions = "function Trig_" + trigger_name + "_Conditions takes nothing returns boolean\n" + conditions;
-		conditions += "\treturn true\n";
-		conditions += "endfunction\n\n";
-
-		events += "\tcall TriggerAddCondition(" + trigger_variable_name + ", Condition(function Trig_" + trigger_name + "_Conditions))\n";
-	}
-
-	events += "\tcall TriggerAddAction(" + trigger_variable_name + ", function " + trigger_action_name + ")\n";
-	events += "endfunction\n\n";
-
-	std::string logo = u8"//自定义jass生成器 作者： 阿七  \n//有bug到魔兽地图编辑器吧 @w4454962 \n";
+if (m_ydweTrigger->isEnable())
+{
+	actions += action_code;
+	m_ydweTrigger->onActionsToFuncEnd(actions, root);
+}
+else
+{
+	actions += action_code;
+}
 
 
-	return seperator + "// Trigger: " + root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
+actions += "endfunction\n\n";
+
+if (!conditions.empty()) {
+	conditions = "function Trig_" + trigger_name + "_Conditions takes nothing returns boolean\n" + conditions;
+	conditions += "\treturn true\n";
+	conditions += "endfunction\n\n";
+
+	events += "\tcall TriggerAddCondition(" + trigger_variable_name + ", Condition(function Trig_" + trigger_name + "_Conditions))\n";
+}
+
+events += "\tcall TriggerAddAction(" + trigger_variable_name + ", function " + trigger_action_name + ")\n";
+events += "endfunction\n\n";
+
+std::string logo = u8"//自定义jass生成器 作者： 阿七  \n//有bug到魔兽地图编辑器吧 @w4454962 \n";
+
+
+return seperator + "// Trigger: " + root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
 }
 
 
@@ -1694,6 +1694,21 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 
 	if (!action->enable)
 		return "";
+	if (action->child_flag != -1)
+	{
+		ActionNodePtr parent = node->getParentNode();
+		Action* parent_action = parent->getAction();
+		if (parent_action)
+		{
+			uint32_t parent_size = this_call<int>(get_world_editor().getAddress(0x005DAE20), parent_action);
+			if (action->child_flag >= parent_size)
+			{
+				return "";
+			}
+		}
+		
+	}
+
 
 	std::string output;
 

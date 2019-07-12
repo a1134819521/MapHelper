@@ -62,7 +62,10 @@ struct Action
 	uint32_t unknow32;//0x124;
 	uint32_t param_count; // 0x128
 	Parameter** parameters;//0x12c
-	char unknow4[0xC];//0x130
+	uint32_t unknow6;//0x130
+	uint32_t unknow7;//0x134
+	uint32_t id;//0x138
+
 	uint32_t enable;//0x13c 
 	char unknow5[0x14];//0x140
 	uint32_t child_flag;//0x154 当该条动作是子动作时为0 否则是-1
