@@ -5,6 +5,8 @@
 #include "EditorData.h"
 #include "ActionNode.h"
 
+#include "word_group.hpp"
+
 class TriggerEditor
 {
 public:
@@ -23,6 +25,9 @@ public:
 	
 
 	std::string convertTrigger(Trigger* trigger);
+
+	std::string convertActionGroup(ActionNodePtr node,word::ActionDef& action_def, std::string& pre_actions);
+
 	std::string convertAction(ActionNodePtr node, std::string& pre_actions, bool nested);
 
 	std::string convertParameter(Parameter* parameter, ActionNodePtr node, std::string& pre_actions, bool add_call = false);
@@ -63,6 +68,10 @@ protected:
 	std::unordered_map<Trigger*, bool> m_initTriggerTable;
 
 public:
+
+	word::ActionGroup group;
+
+	std::string local_script;
 
 	std::map<std::string, Variable*> variableTable;
 

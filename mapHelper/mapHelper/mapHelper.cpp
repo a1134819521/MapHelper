@@ -43,20 +43,6 @@ namespace real
 
 
 
-
-struct ActionInfo
-{
-	int type_id;
-	std::string name;
-};
-
-typedef std::vector<ActionInfo> ActionInfoList;
-typedef std::map<std::string, ActionInfoList> ActionInfoMap;
-
-ActionInfoMap g_actionInfoTable;
-
-
-
 Helper::Helper()
 	: m_bAttach(false)
 {
@@ -129,10 +115,12 @@ static void __declspec(naked) insertConvertTrigger()
 //修改特定UI的子动作数量
 static int __fastcall fakeGetChildCount(Action* action)
 {
-	auto it = g_actionInfoTable.find(std::string(action->name));
-	if (it != g_actionInfoTable.end())
+	auto& editor = get_trigger_editor();
+	auto action_def = editor.group.get_action_def(action->name);
+
+	if (!action_def.actions.empty())
 	{
-		return it->second.size();
+		return action_def.actions.size();
 	}
 	return this_call<int>(real::GetChildCount, action);
 }
@@ -140,25 +128,32 @@ static int __fastcall fakeGetChildCount(Action* action)
 //修改特定的UI名字
 static int __fastcall fakeGetString(Action* action, uint32_t edx,int index, char* buffer, int len)
 {
-	auto it = g_actionInfoTable.find(std::string(action->name));
-	if (it == g_actionInfoTable.end())
+
+	auto& editor = get_trigger_editor();
+	auto action_def = editor.group.get_action_def(action->name);
+
+	if (!action_def.actions.empty())
 	{
-		return fast_call<int>(real::GetString, action, edx, index, buffer, len);
-		
+		index = min(index, action_def.actions.size() - 1);
+		strncpy(buffer, action_def.actions[index].name.c_str(), len);
+		return 1;
 	}
-	return fast_call<int>(real::GetWEString, it->second[index].name.c_str(), buffer, len, 0);
+	return fast_call<int>(real::GetString, action, edx, index, buffer, len);
 }
 
 //返回动作组的动作类型
 static int __fastcall fakeGetActionType(Action* action, uint32_t edx, int index)
 {
-	auto it = g_actionInfoTable.find(std::string(action->name));
-	if (it == g_actionInfoTable.end())
+
+	auto& editor = get_trigger_editor();
+	auto action_def = editor.group.get_action_def(action->name);
+
+	if (!action_def.actions.empty())
 	{
-		return fast_call<int>(real::GetActionType, action, edx, index);
+		index = (std::min)(index, (int)action_def.actions.size() - 1);
+		return action_def.actions[index].type_id;
 	}
-	index = (std::min)(index, (int)it->second.size() - 1);
-	return it->second[index].type_id;
+	return fast_call<int>(real::GetActionType, action, edx, index);
 }
 
 //根据指定参数值 修改目标参数类型
@@ -317,9 +312,21 @@ void Helper::attach()
 	m_configPath = fs::path(buffer).remove_filename() / "EverConfig.cfg";
 
 	m_bAttach = true;
+#if !defined(EMBED_YDWE)
+	if (getConfig() == -1)
+	{
+		enableConsole();
+	}
+#endif
+
 
 
 	auto& editor = get_world_editor();
+
+	auto& trigger_editor = get_trigger_editor();
+
+	const auto config_data = std_call<TriggerConfigData*>(editor.getAddress(0x004D4DA0));
+	trigger_editor.loadTriggerConfig(config_data);
 
 	//------------------自定义脚本生成器的操作----------------
 
@@ -383,150 +390,9 @@ void Helper::attach()
 	hook::install(&real::GetParamType, reinterpret_cast<uintptr_t>(&fakeGetParamType), m_hookGetParamType);
 
 	//-------------------end-----------------------------
-#if !defined(EMBED_YDWE)
-	if (getConfig() == -1)
-	{
-		enableConsole();
-	}
-#endif
-
-
-	//std::ifstream file("D:\\war3\\test.json",std::ios::binary);
-	//
-	//if (!file.is_open())
-	//{
-	//	return;
-	//}
-	//
-	//
-	//std::stringstream stream;
-	std::string text;
-	std::string error;
-	//
-	//stream << file.rdbuf();
-	//
-	//text = stream.str();
-	//
-	//file.close();
-
-	text = R"(
-{
-    "YDWETimerStartMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-
-    "YDWERegisterTriggerMultiple" : [
-        { "Event" : "WESTRING_EVENTS" },
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-
-    "YDWEEnumUnitsInRangeMultiple" : [
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-
-    "YDWEForLoopLocVarMultiple" : [
-        { "Action" : "WESTRING_TRIGSUBFUNC_FORLOOPACTIONS" }
-    ],
-
-    "YDWERegionMultiple" : [
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-
-    "YDWEExecuteTriggerMultiple" : [
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-
-    "DzTriggerRegisterMouseEventMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-	],
-
-    "DzTriggerRegisterKeyEventMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-    "DzTriggerRegisterMouseMoveEventMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-    "DzTriggerRegisterMouseWheelEventMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-    "DzTriggerRegisterWindowResizeEventMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-    "DzFrameSetUpdateCallbackMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ],
-    "DzFrameSetScriptMultiple" : [
-        { "Action" : "WESTRING_PARAMETERS" },
-        { "Action" : "WESTRING_ACTIONS" }
-    ]
-}
-)";
 
 
 
-	using json::Json;
-
-	Json json = Json::parse(text, error);
-
-	auto items = json.object_items();
-
-	for (auto&[str, child] : items)
-	{
-
-		if (child.is_array())
-		{
-			if (g_actionInfoTable.find(str) == g_actionInfoTable.end())
-				g_actionInfoTable[str] = ActionInfoList();
-
-			auto& mul_list = g_actionInfoTable[str];
-
-			auto list = child.array_items();
-			for (int i = 0; i < list.size(); i++)
-			{
-				auto& item = list[i].object_items();
-
-				for (auto& [key, value] : item)
-				{
-					std::string s = key;
-					transform(s.begin(), s.end(), s.begin(), ::tolower);
-					int type_id = -1;
-					switch (hash_(s.c_str()))
-					{
-					case "event"s_hash:
-						type_id = Action::Type::event;
-						break;
-					case "condition"s_hash:
-						type_id = Action::Type::condition;
-						break;
-					case "action"s_hash:
-						type_id = Action::Type::action;
-						break;
-					}
-					if (type_id != -1)
-					{
-						mul_list.push_back(ActionInfo({ type_id,value.string_value() }));
-					}
-				}
-
-			}
-		}
-	}
-
-	for (auto& [name,list] : g_actionInfoTable)
-	{
-		for (auto& value : list)
-		{
-			//std::cout << name << "  :  " << value.type_id << "  " << value.name << "\n";
-		}
-	}
 }
 
 
@@ -635,7 +501,7 @@ void Helper::enableConsole()
 	{
 		::DeleteMenu(::GetSystemMenu(v_hwnd_console, FALSE), SC_CLOSE, MF_BYCOMMAND);
 		::DrawMenuBar(v_hwnd_console);
-		::SetWindowTextA(v_hwnd_console, "ydwe保存加速插件 1.0b");
+		::SetWindowTextA(v_hwnd_console, "ydwe保存加速插件 1.0c");
 		std::cout
 			<< "用来加速ydwe保存地图的插件，对地形装饰物，触发编辑器极速优化\n"
 			<< "参与开发者 ：w4454962、 神话、 actboy168\n"

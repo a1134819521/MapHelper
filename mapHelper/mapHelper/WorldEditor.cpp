@@ -7,12 +7,6 @@ WorldEditor::WorldEditor()
 {
 	m_tempPath = nullptr;
 
-	auto& triggerEditor = get_trigger_editor();
-
-	const auto configData = std_call<TriggerConfigData*>(getAddress(0x004D4DA0));
-	triggerEditor.loadTriggerConfig(configData);
-
-
 }
 
 WorldEditor::~WorldEditor()

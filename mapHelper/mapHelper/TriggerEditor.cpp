@@ -41,13 +41,29 @@ void TriggerEditor::loadTriggers(TriggerData* data)
 void TriggerEditor::loadTriggerConfig(TriggerConfigData* data)
 {
 	m_configData = data;
-	std::cout<<"cout读取配置文件"<<std::endl;
+	std::cout<<"读取配置文件"<<std::endl;
 	for (size_t i = 0; i < data->type_count; i++)
 	{
 		TriggerType* type_data = &data->array[i];
 		m_typesTable[type_data->type] = type_data;
 	}
 	m_ydweTrigger = YDTrigger::getInstance();
+
+	char buffer[0x400];
+	HMODULE h = GetModuleHandleA("MapHelper.asi");
+	if (h == NULL) {
+		h = GetModuleHandleA("MapHelper.dll");
+	}
+	GetModuleFileNameA(h, buffer, 0x400);
+
+	fs::path current = buffer;
+	current.remove_filename();
+	
+	current = "D:\\MapHelper_git";
+
+	if (!group.load(current / "group.json")) {
+		std::cout << "json读取失败\n";
+	}
 }
 
 void TriggerEditor::saveTriggers(const char* path)
@@ -1210,7 +1226,7 @@ endfunction
 
 
 
-	
+
 
 	writer.write_string("\n");
 
@@ -1688,6 +1704,173 @@ return seperator + "// Trigger: " + root->getName() + "\n" + logo + seperator + 
 }
 
 
+std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDef& action_def, std::string& pre_actions)
+{
+	Action* action = node->getAction();
+	Parameter** parammeters = action->parameters;
+
+	std::string output = "";
+
+	std::map<std::string, std::string> func_name;
+
+	for (const auto& line : action_def.script_handler.lines) {
+		std::string str;
+
+		auto& values = line.values;
+
+		for (const auto& item : values) {
+
+			switch (item.type)
+			{
+
+			//$0获取参数
+			case word::ValueInfo::Type::args:
+			{
+				int index = min(item.args_index, action->param_count);
+				str += convertParameter(parammeters[index], node, pre_actions);
+				break;
+			}
+
+			//~0 获取参数类型
+			case word::ValueInfo::Type::args_type:
+			{
+				int index = min(item.args_index, action->param_count);
+				str += parammeters[index]->type_name;
+				break;
+			}
+
+			//$key 根据对应的动作所属类型 来取对应数值
+			case word::ValueInfo::Type::param:
+			{
+				int id = 0;
+			
+				std::string value;
+				const std::string& key = item.data;
+				auto& actions = action_def.actions;
+				if (id < actions.size() && actions[id].get_value(key,value))
+				{
+					str += value;
+				}
+				else if (key.find("func") != std::string::npos)
+				{
+					//如果是 带有func的字段 则自动生成一个函数名
+					auto it = func_name.find(key);
+					if (it == func_name.end())
+					{
+						std::string name = generate_function_name(node->getTriggerNamePtr());
+						func_name[key] = name;
+						str += name;
+					}
+					else
+					{
+						str += it->second;
+					}
+				}
+				else if (strncmp(key.c_str(), "loop", 4) == 0)
+				{
+					//如果是取参数转换为循环变量名的话
+					int index = atoi(key.substr(4, key.length()).c_str());
+					index = min(index, action->param_count);
+					std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
+					convert_loop_var_name(name);
+					str += name;
+				}
+			
+				break;
+			}
+
+			//^0 生成指定的子动作
+			case word::ValueInfo::Type::action:
+			{
+				int index = min(item.args_index, action->child_count);
+				ActionNodePtr child = (*node)[index];
+				if (child.get() && child->getAction()) {
+					str += convertAction(child, pre_actions, false);
+				}
+
+				break;
+			}
+
+			// %0 解包动作组
+			case word::ValueInfo::Type::group:
+			{
+				std::vector<ActionNodePtr> list;
+				node->getChildNodeList(list);
+
+				int index = item.args_index;
+
+				space_stack++;
+				
+				for (int i = 0;i < list.size(); i++)
+				{
+					auto& child = list[i];
+					int child_id = child->getActionId();
+					if (index == child_id && child_id < action_def.actions.size())
+					{
+						str += convertAction(child, pre_actions, false);
+						if (i + 1 < list.size())
+						{
+							str += "\n";
+						}
+						str += spaces[space_stack];
+					}
+				}
+				space_stack--;
+
+				break;
+			}
+			//其余内容
+			case word::ValueInfo::Type::code:
+				str += item.data;
+				char c = item.data[0];
+				if (c == '\r' || c == '\n') 
+				{
+					str += spaces[space_stack];
+				}
+
+				break;
+			}
+		}
+
+		switch (line.type)
+		{
+		case word::LineInfo::Type::function:
+		{
+			if (m_ydweTrigger->isEnable())
+			{
+				if (values.size() > 0)
+				{
+					auto& data = values[0].data;
+					std::cout << data << "\n";
+					if (data.find("endfunction") != std::string::npos)
+					{
+						m_ydweTrigger->onActionsToFuncEnd(pre_actions, node);
+						pre_actions += "\n";
+						pre_actions += str;
+						pre_actions += "\n";
+						break;
+					}
+					else if (data.find("function") != std::string::npos) {
+						pre_actions += str;
+						m_ydweTrigger->onActionsToFuncBegin(pre_actions, node);
+						break;
+					}
+				}
+			}
+			pre_actions += str;
+			break;
+		}
+		case word::LineInfo::Type::local: 
+			local_script += str; 
+			break;
+		case word::LineInfo::Type::action: 
+			output += str;
+		}
+		
+	}
+	return output;
+}
+
 std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_actions, bool nested)
 {
 	Action* action = node->getAction();
@@ -1706,9 +1889,13 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 				return "";
 			}
 		}
-		
 	}
 
+	auto action_def = group.get_action_def(node->getName());
+	if (!action_def.actions.empty())
+	{
+		return convertActionGroup(node,action_def, pre_actions);
+	}
 
 	std::string output;
 

@@ -18,6 +18,7 @@
 #include <map>
 #include <vector>
 #include <inttypes.h>
+#include <sstream>
 #include <fstream>
 #include <filesystem>
 #include <algorithm>

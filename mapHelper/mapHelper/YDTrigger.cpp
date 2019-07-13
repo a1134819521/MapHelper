@@ -2,7 +2,7 @@
 #include "YDTrigger.h"
 #include "TriggerEditor.h"
 #include "WorldEditor.h"
-
+#include <regex>
 
 YDTrigger::YDTrigger()
 	:m_bEnable(true),
@@ -127,88 +127,88 @@ bool YDTrigger::onActionToJass(std::string& output,ActionNodePtr node, std::stri
 
 	switch (node->getNameId())
 	{
-	case "YDWEForLoopLocVarMultiple"s_hash:
-	{
-		
-		std::string variable = std::string("ydul_") + action->parameters[0]->value;
-		convert_loop_var_name(variable);
-
-		output += "set " + variable + " = ";
-		output += editor.convertParameter(parameters[1], node, pre_actions) + "\n";
-		output += editor.spaces[stack];
-		output += "loop\n";
-		output += editor.spaces[++stack];
-		output += "exitwhen " + variable + " > " + editor.convertParameter(parameters[2], node, pre_actions) + "\n";
-	
-		node->getChildNodeList(list);
-		for (auto& child : list)
-		{
-			output += editor.spaces[stack];
-			output += editor.convertAction(child, pre_actions, false) + "\n";
-		}
-
-		output += editor.spaces[stack];
-		output += "set " + variable + " = " + variable + " + 1\n";
-		output += editor.spaces[--stack];
-		output += "endloop\n";
-		return true;
-	}
-	case "YDWERegionMultiple"s_hash:
-	{
-		output += "// --------------------\n";
-		output += editor.spaces[stack];
-		output += "//" + std::string(parameters[0]->value) + "\n";
-
-		node->getChildNodeList(list);
-		for (auto& child : list)
-		{
-			output += editor.spaces[stack];
-			output += editor.convertAction(child, pre_actions, false) + "\n";
-		}
-		output += editor.spaces[stack];
-		output += "// --------------------\n";
-
-		return true;
-	}
-	case "YDWEEnumUnitsInRangeMultiple"s_hash:
-	{
-		
-		output += "set ydl_group = CreateGroup()\n";
-		output += editor.spaces[stack];
-		output += "call GroupEnumUnitsInRange(ydl_group,";
-		output += editor.convertParameter(parameters[0], node, pre_actions);
-		output += ",";
-		output += editor.convertParameter(parameters[1], node, pre_actions);
-		output += ",";
-		output += editor.convertParameter(parameters[2], node, pre_actions);
-		output += ",null)\n";
-		output += editor.spaces[stack];
-		output += "loop\n";
-
-		output += editor.spaces[++stack];
-		output += "set ydl_unit = FirstOfGroup(ydl_group)\n";
-
-		output += editor.spaces[stack];
-		output += "exitwhen ydl_unit == null\n";
-
-		output += editor.spaces[stack];
-		output += "call GroupRemoveUnit(ydl_group, ydl_unit)\n";
-		m_enumUnitStack++;
-		node->getChildNodeList(list);
-		for (auto& child : list)
-		{
-			output += editor.spaces[stack];
-			//循环里的子动作 沿用外面相同的父节点
-			output += editor.convertAction(child, pre_actions, false) + "\n";
-		}
-		m_enumUnitStack--;
-		output += editor.spaces[--stack];
-		output += "endloop\n";
-		output += editor.spaces[stack];
-		output += "call DestroyGroup(ydl_group)\n";
-		
-		return true;
-	}
+	//case "YDWEForLoopLocVarMultiple"s_hash:
+	//{
+	//	
+	//	std::string variable = std::string("ydul_") + action->parameters[0]->value;
+	//	convert_loop_var_name(variable);
+	//
+	//	output += "set " + variable + " = ";
+	//	output += editor.convertParameter(parameters[1], node, pre_actions) + "\n";
+	//	output += editor.spaces[stack];
+	//	output += "loop\n";
+	//	output += editor.spaces[++stack];
+	//	output += "exitwhen " + variable + " > " + editor.convertParameter(parameters[2], node, pre_actions) + "\n";
+	//
+	//	node->getChildNodeList(list);
+	//	for (auto& child : list)
+	//	{
+	//		output += editor.spaces[stack];
+	//		output += editor.convertAction(child, pre_actions, false) + "\n";
+	//	}
+	//
+	//	output += editor.spaces[stack];
+	//	output += "set " + variable + " = " + variable + " + 1\n";
+	//	output += editor.spaces[--stack];
+	//	output += "endloop\n";
+	//	return true;
+	//}
+	//case "YDWERegionMultiple"s_hash:
+	//{
+	//	output += "// --------------------\n";
+	//	output += editor.spaces[stack];
+	//	output += "//" + std::string(parameters[0]->value) + "\n";
+	//
+	//	node->getChildNodeList(list);
+	//	for (auto& child : list)
+	//	{
+	//		output += editor.spaces[stack];
+	//		output += editor.convertAction(child, pre_actions, false) + "\n";
+	//	}
+	//	output += editor.spaces[stack];
+	//	output += "// --------------------\n";
+	//
+	//	return true;
+	//}
+	//case "YDWEEnumUnitsInRangeMultiple"s_hash:
+	//{
+	//	
+	//	output += "set ydl_group = CreateGroup()\n";
+	//	output += editor.spaces[stack];
+	//	output += "call GroupEnumUnitsInRange(ydl_group,";
+	//	output += editor.convertParameter(parameters[0], node, pre_actions);
+	//	output += ",";
+	//	output += editor.convertParameter(parameters[1], node, pre_actions);
+	//	output += ",";
+	//	output += editor.convertParameter(parameters[2], node, pre_actions);
+	//	output += ",null)\n";
+	//	output += editor.spaces[stack];
+	//	output += "loop\n";
+	//
+	//	output += editor.spaces[++stack];
+	//	output += "set ydl_unit = FirstOfGroup(ydl_group)\n";
+	//
+	//	output += editor.spaces[stack];
+	//	output += "exitwhen ydl_unit == null\n";
+	//
+	//	output += editor.spaces[stack];
+	//	output += "call GroupRemoveUnit(ydl_group, ydl_unit)\n";
+	//	m_enumUnitStack++;
+	//	node->getChildNodeList(list);
+	//	for (auto& child : list)
+	//	{
+	//		output += editor.spaces[stack];
+	//		//循环里的子动作 沿用外面相同的父节点
+	//		output += editor.convertAction(child, pre_actions, false) + "\n";
+	//	}
+	//	m_enumUnitStack--;
+	//	output += editor.spaces[--stack];
+	//	output += "endloop\n";
+	//	output += editor.spaces[stack];
+	//	output += "call DestroyGroup(ydl_group)\n";
+	//	
+	//	return true;
+	//}
 	case "YDWESaveAnyTypeDataByUserData"s_hash:
 	{
 		output += "call YDUserDataSet(";
@@ -1095,6 +1095,22 @@ void YDTrigger::onActionsToFuncBegin(std::string& funcCode, ActionNodePtr node)
 		seachLocal(action->child_actions,action->child_count,action,true,false);
 	}
 
+	auto& editor = get_trigger_editor();
+
+	if (!editor.local_script.empty())
+	{
+		std::regex reg("\\s*local\\s+(\\w+)\\s+(\\w+)\\s*");
+		auto words_end = std::sregex_iterator();
+		auto words_begin = std::sregex_iterator(editor.local_script.begin(), editor.local_script.end(), reg);
+
+		//正则表达式解析 需要申明的局部变量类型跟名字 防止重复申明
+		for (; words_begin != words_end; ++words_begin)
+		{
+			addLocalVar(words_begin->str(1), words_begin->str(2));
+		}
+	}
+
+
 	for (auto&[name, type] : *localTable)
 	{
 		funcCode += "\tlocal " + type+ " " + name + "\n";
@@ -1110,6 +1126,10 @@ void YDTrigger::onActionsToFuncBegin(std::string& funcCode, ActionNodePtr node)
 
 void YDTrigger::onActionsToFuncEnd(std::string& funcCode, ActionNodePtr node)
 {
+
+	auto& editor = get_trigger_editor();
+
+	editor.local_script.clear();
 
 	if (node->isRootNode() && node->m_haveHashLocal)
 	{

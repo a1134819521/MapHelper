@@ -1,0 +1,271 @@
+{
+    "注释说明" : [
+        "关于script中使用的符号说明",
+        "# 前缀为新函数",
+        "@ 为自身函数申请局部变量 申明不带值",
+        "$0 取参数值 0为参数索引",
+        "$name 按照动作位置取参数值",
+        "$func 生成函数名 可以多个不同名字 $func1 $func2 ",
+        "$loop0 转换第0个参数值为循环变量名  中文循环变量需要特殊处理",
+        "~0 取参数类型 0为参数索引",
+        "^0 取指定动作 0为第几行动作",
+        "%0 解包动作组 0为动作组索引",
+        ""
+    ],
+
+    "YDWETimerStartMultiple" : {
+		"Actions" : [
+			{ 
+                "Action" : "参数",
+                "IsChild" : "false",
+                "AutoParam" : "true",
+                "handle" : "ydl_timer"
+            },
+			{ 
+                "Action" : "动作",
+                "IsChild" : "true",
+                "handle" : "GetExpiredTimer()"
+            }
+        ],
+        
+		"Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%1",
+            "#endfunction",
+
+            "@local timer ydl_timer",
+            "set ydl_timer = $0",
+            "%0",
+            "call TimerStart(ydl_timer,$1,$2,function $func1)"
+        ]
+    },
+
+    "YDWERegisterTriggerMultiple" : {
+        "Actions" : [
+            { 
+                "Event" : "事件",
+                "IsChild" : "false",
+                "handle" : "ydl_trigger"
+            },
+            { 
+                "Action" : "参数",
+                "IsChild" : "false",
+                "AutoParam" : "true",
+                "handle" : "ydl_trigger"
+            },
+            { 
+                "Action" : "动作",
+                "IsChild" : "true",
+                "handle" : "GetTriggeringTrigger()"
+            }
+        ],
+
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "@local trigger ydl_trigger",
+            "set $handle = $0",
+            "%0",
+            "%1",
+            "call TriggerAddCondition($handle,$1,$2,Condition(function $func1))"
+        ]
+    },
+
+    "YDWEEnumUnitsInRangeMultiple" : {
+        "Actions" : [
+            { 
+                "Action" : "动作"
+            }
+        ],
+
+        "Script" : [
+            "@local group ydl_group",
+            "@local unit ydl_unit",
+
+            "set ydl_group = CreateGroup()",
+            "call GroupEnumUnitsInRange(ydl_group,$0,$1,$2,null)",
+            "loop",
+            "    set ydl_unit = FirstOfGroup(ydl_group)",
+            "    exitwhen ydl_unit == null",
+            "    call GroupRemoveUnit(ydl_group, ydl_unit)",
+            "    %0",
+            "endloop",
+            "call DestroyGroup(ydl_group)"
+        ]
+    },
+
+    "YDWEForLoopLocVarMultiple" : {
+        "Actions" : [ 
+            {
+                "Action" : "循环"
+            }
+        ],
+
+        "Script" : [
+            "@local integer $loop0",
+
+            "set $loop0 = $1",
+            "loop",
+            "    exitwhen $loop0 > $2",
+            "    %0",
+            "endloop"
+        ]
+    },
+
+    
+    
+    "YDWERegionMultiple" : {
+        "Actions" : [
+            { 
+                "Action" : "动作" 
+            }
+        ],
+
+        "Script" : [
+            "// --------------------",
+            "//$0",
+            "%0",
+            "// --------------------"
+        ]
+    },
+
+   "YDWEExecuteTriggerMultiple" : {
+        "Actions" : [ 
+            {
+                "Action" : "动作",
+                "AutoParam" : "true"
+            }
+        ],
+
+        "Script" : [
+            "@local trigger ydl_trigger",
+
+            "set ydl_trigger = $0",
+            "YDLocalExecuteTrigger(ydl_trigger)",
+            "%0",
+            "call YDTriggerExecuteTrigger(ydl_trigger,$1)"
+        ]
+    },
+  
+  "DzTriggerRegisterMouseEventMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzTriggerRegisterMouseEventByCode(null,$1,$2,false,function $func1)",
+            "endif"
+        ]
+        
+    },
+
+    "DzTriggerRegisterKeyEventMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzTriggerRegisterKeyEventByCode(null,$1,$2,false,function $func1)",
+            "endif"
+        ]
+    },
+
+    "DzTriggerRegisterMouseMoveEventMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzTriggerRegisterMouseMoveEventByCode(null,$1,$2,false,function $func1)",
+            "endif"
+        ]
+    },
+    
+    "DzTriggerRegisterMouseWheelEventMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzTriggerRegisterMouseWheelByCode(null,$1,$2,false,function $func1)",
+            "endif"
+        ]
+    },
+
+    "DzTriggerRegisterWindowResizeEventMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzTriggerRegisterWindowResizeByCode(null,$1,$2,false,function $func1)",
+            "endif"
+        ]
+    },
+    
+    "DzFrameSetUpdateCallbackMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzFrameSetUpdateCallbackByCode(function $func1)",
+            "endif"
+        ]
+    },
+ 
+    "DzFrameSetScriptMultiple" : {
+        "Actions" : [
+            { "Action" : "参数" },
+            { "Action" : "动作" }
+        ],
+        
+        "Script" : [
+            "#function $func1 takes nothing returns nothing",
+            "#%2",
+            "#endfunction",
+
+            "if GetLocalPlayer() == $0 then",
+            "    call DzFrameSetScriptMultipleByCode($2,$1,function $func1,false)",
+            "endif"
+        ]
+    }
+}

@@ -23,7 +23,7 @@
     <ProjectGuid>{4A3C5086-97EE-4220-9264-BE5B1F8B1D0C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>mapHelper</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -159,6 +159,7 @@
   <ItemGroup>
     <ClInclude Include="..\3rd\Detours\src\detours.h" />
     <ClInclude Include="..\3rd\Detours\src\detver.h" />
+    <ClInclude Include="word_group.hpp" />
     <ClInclude Include="ActionNode.h" />
     <ClInclude Include="BinaryWriter.h" />
     <ClInclude Include="EditorData.h" />
@@ -170,6 +171,8 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TriggerEditor.h" />
+    <ClInclude Include="word_handler.hpp" />
+    <ClInclude Include="word_parser.hpp" />
     <ClInclude Include="WorldEditor.h" />
     <ClInclude Include="YDTrigger.h" />
   </ItemGroup>
