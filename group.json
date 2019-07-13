@@ -10,8 +10,64 @@
         "~0 取参数类型 0为参数索引",
         "^0 取指定动作 0为第几行动作",
         "%0 解包动作组 0为动作组索引",
-        "IsChild 的意思是该动作组会生成新函数"
+        ""
     ],
+
+    "ForLoopAMultiple" : {
+        "Actions" : [
+            { 
+                "Action" : "动作",
+                "IsChild" : true
+            }
+        ],
+
+        "Script" : [
+            "set bj_forLoopAIndex = $0",
+            "set bj_forLoopAIndexEnd = $1",
+            "loop",
+            "    exitwhen bj_forLoopAIndex > bj_forLoopAIndexEnd",
+            "%0",
+            "    set bj_forLoopAIndex = bj_forLoopAIndex + 1",
+            "endloop"
+        ]
+    },
+
+    "ForLoopBMultiple" : {
+        "Actions" : [
+            { 
+                "Action" : "动作",
+                "IsChild" : true
+            }
+        ],
+
+        "Script" : [
+            "set bj_forLoopBIndex = $0",
+            "set bj_forLoopBIndexEnd = $1",
+            "loop",
+            "    exitwhen bj_forLoopBIndex > bj_forLoopBIndexEnd",
+            "%0",
+            "    set bj_forLoopBIndex = bj_forLoopBIndex + 1",
+            "endloop"
+        ]
+    },
+
+    "ForLoopVarMultiple" : {
+        "Actions" : [
+            { 
+                "Action" : "动作",
+                "IsChild" : true
+            }
+        ],
+
+        "Script" : [
+            "set $0 = $1",
+            "loop",
+            "    exitwhen $0 > $2",
+            "%0",
+            "    set $0 = $0 + 1",
+            "endloop"
+        ]
+    },
 
     "ForForceMultiple" : {
         "Actions" : [

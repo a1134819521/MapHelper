@@ -2050,58 +2050,6 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 		return output;
 	}
 
-	case "ForLoopAMultiple"s_hash:
-		is_loopa = true;
-	case "ForLoopBMultiple"s_hash:
-	{
-		std::string loop_index = is_loopa ? "bj_forLoopAIndex" : "bj_forLoopBIndex";
-		std::string loop_index_end = is_loopa ? "bj_forLoopAIndexEnd" : "bj_forLoopBIndexEnd";
-
-		output += "set " + loop_index + "=" + convertParameter(parameters[0], node, pre_actions) + "\n";
-		output += spaces[space_stack];
-		output += "set " + loop_index_end + "=" + convertParameter(parameters[1], node, pre_actions) + "\n";
-		output += spaces[space_stack];
-		output += "loop\n";
-		output += spaces[++space_stack];
-		output += "exitwhen " + loop_index + " > " + loop_index_end + "\n";
-		
-		node->getChildNodeList(list);
-
-		for (auto& child : list)
-		{
-			output += spaces[space_stack];
-			output += convertAction(child, pre_actions, false) + "\n";
-		}
-		output += spaces[space_stack];
-		output += "set " + loop_index + " = " + loop_index + " + 1\n";
-		output += spaces[--space_stack];
-		output += "endloop\n";
-		return output;
-	}
-
-	case "ForLoopVarMultiple"s_hash:
-	{
-		std::string variable = convertParameter(parameters[0], node, pre_actions);
-		output += "set " + variable + " = ";
-		output += convertParameter(parameters[1], node, pre_actions) + "\n";
-		output += spaces[space_stack];
-		output += "loop\n";
-		output += spaces[++space_stack];
-		output += "exitwhen " + variable + " > " + convertParameter(parameters[2], node, pre_actions) + "\n";
-		
-		node->getChildNodeList(list);
-
-		for (auto& child : list)
-		{
-			output += spaces[space_stack];
-			output += convertAction(child, pre_actions, false) + "\n";
-		}
-		output += spaces[space_stack];
-		output += "set " + variable + " = " + variable + " + 1\n";
-		output += spaces[--space_stack];
-		output += "endloop\n";
-		return output;
-	}
 	
 	case "IfThenElseMultiple"s_hash:
 	{
