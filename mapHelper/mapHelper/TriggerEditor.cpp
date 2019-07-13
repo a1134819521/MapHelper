@@ -1902,9 +1902,11 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 					}
 					else
 					{
-						str += convertAction(child, pre_actions, false);
-						if (i + 1 < list.size())
+						str += convertAction(child, pre_actions, false) ;
+						if (str.size() > 0 && str[str.size() - 1] != '\n')
+						{
 							str += "\n";
+						}
 					}
 				}
 				
@@ -1941,7 +1943,6 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 								last_table->emplace(n, t);
 							}
 						}
-						str.pop_back();
 						table->clear();
 					}
 				}
