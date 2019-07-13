@@ -1856,24 +1856,55 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 
 				auto& info = actions[index];
 
-
 				for (int i = 0;i < list.size(); i++)
 				{
 					auto& child = list[i];
-					int child_id = child->getActionId();
-					//生成动作
-					if (index == child_id && child_id < actions.size())
-					{
-						if (info.is_child)
-							str += spaces[space_stack];
-						else 
-							str += spaces[space_stack - 1];
+					Action* childAction = child->getAction();
 
+					int child_id = child->getActionId();
+
+					//生成动作
+					if (index != child_id || child_id >= actions.size())
+					{
+						continue;
+					}
+					if (info.is_child)
+						str += spaces[space_stack];
+					else 
+						str += spaces[space_stack - 1];
+					
+					//事件需要默认一个参数
+					if (child->getActionType() == Action::Type::event)
+					{
+						if (child->getNameId() == "MapInitializationEvent"s_hash)
+						{
+							continue;
+						}
+						m_ydweTrigger->onRegisterEvent(str, child);
+
+						str += "call " + getBaseName(child) + "(";
+
+						std::string value;
+						if (!actions[index].get_value("handle", value)) 
+						{
+							value = "null";
+						}
+						str += value;
+
+						for (size_t k = 0; k < childAction->param_count; k++)
+						{
+							str += ", ";
+							str += convertParameter(childAction->parameters[k], child, pre_actions);
+						}
+						str += ")\n";
+						m_ydweTrigger->onRegisterEvent2(str, child);
+
+					}
+					else
+					{
 						str += convertAction(child, pre_actions, false);
 						if (i + 1 < list.size())
-						{
 							str += "\n";
-						}
 					}
 				}
 				
@@ -1910,6 +1941,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 								last_table->emplace(n, t);
 							}
 						}
+						str.pop_back();
 						table->clear();
 					}
 				}

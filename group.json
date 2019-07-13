@@ -14,7 +14,6 @@
     ],
 
     "YDWETimerStartMultiple" : {
-
         "AutoParam" : true,
 
 		"Actions" : [
@@ -43,6 +42,7 @@
     },
 
     "YDWERegisterTriggerMultiple" : {
+        "AutoParam" : true,
         "Actions" : [
             { 
                 "Event" : "事件",
@@ -52,7 +52,6 @@
             { 
                 "Action" : "参数",
                 "IsChild" : false,
-                "AutoParam" : true,
                 "handle" : "ydl_trigger"
             },
             { 
@@ -71,7 +70,7 @@
             "set $handle = $0",
             "%0",
             "%1",
-            "call TriggerAddCondition($handle,$1,$2,Condition(function $func1))"
+            "call TriggerAddCondition($handle,Condition(function $func1))"
         ]
     },
 
@@ -134,10 +133,12 @@
     },
 
    "YDWEExecuteTriggerMultiple" : {
+        "AutoParam" : true,
         "Actions" : [ 
             {
                 "Action" : "动作",
-                "AutoParam" : true
+                "AutoParam" : true,
+                "handle" : "ydl_trigger"
             }
         ],
 
