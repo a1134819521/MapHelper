@@ -13,7 +13,11 @@ namespace word {
 	struct ActionInfo
 	{
 		int type_id;
+
 		std::string name;
+
+		bool is_child = false;
+
 
 		std::map<std::string, std::string> attrs;
 
@@ -45,6 +49,8 @@ namespace word {
 
 	struct ActionDef
 	{
+		bool is_auto_param = false;
+
 		std::vector<ActionInfo> actions;
 
 		//½Å±¾Ä£°åÓï·¨Ê÷
@@ -106,6 +112,10 @@ namespace word {
 
 				ActionDef action_def;
 
+				Json jbool = child["AutoParam"];
+				if (jbool.is_bool()) {
+					action_def.is_auto_param = jbool.bool_value();
+				}
 				for (const auto& action : jactions.array_items()) {
 					Json jtype = action["Action"];
 					int type_id = -1;
@@ -125,8 +135,15 @@ namespace word {
 					ActionInfo info;
 					info.type_id = type_id;
 					info.name = jtype.string_value();
+					Json jchild = action["IsChild"];
+					if (jchild.is_bool()) {
+						info.is_child = jchild.bool_value();
+					}
+
 					for (const auto&[key, value] : action.object_items()) {
-						info.attrs[key] = value.string_value();
+						if (value.is_string()) {
+							info.attrs[key] = value.string_value();
+						}
 					}
 					action_def.actions.push_back(info);
 				}

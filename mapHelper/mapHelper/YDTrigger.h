@@ -47,14 +47,14 @@ public:
 	bool hasDisableRegister(Trigger* trigger);
 
 	bool isEnable();
-private:
 
-	
 	std::string setLocal(ActionNodePtr node, const std::string& name, const std::string& type, const std::string& value, bool add = false);
 	std::string getLocal(ActionNodePtr node, const std::string& name, const std::string& type);
 
 	std::string setLocalArray(ActionNodePtr node, const  std::string& name, const std::string& type, const std::string& index, const std::string& value);
 	std::string getLocalArray(ActionNodePtr node, const std::string& name, const std::string& type, const std::string& index);
+
+private:
 
 	bool seachHashLocal(Parameter** parameters, uint32_t count, std::map<std::string, std::string>* mapPtr = NULL);
 protected: 

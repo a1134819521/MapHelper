@@ -14,16 +14,18 @@
     ],
 
     "YDWETimerStartMultiple" : {
+
+        "AutoParam" : true,
+
 		"Actions" : [
 			{ 
                 "Action" : "参数",
-                "IsChild" : "false",
-                "AutoParam" : "true",
+                "IsChild" : false,
                 "handle" : "ydl_timer"
             },
 			{ 
                 "Action" : "动作",
-                "IsChild" : "true",
+                "IsChild" : true,
                 "handle" : "GetExpiredTimer()"
             }
         ],
@@ -44,18 +46,18 @@
         "Actions" : [
             { 
                 "Event" : "事件",
-                "IsChild" : "false",
+                "IsChild" : false,
                 "handle" : "ydl_trigger"
             },
             { 
                 "Action" : "参数",
-                "IsChild" : "false",
-                "AutoParam" : "true",
+                "IsChild" : false,
+                "AutoParam" : true,
                 "handle" : "ydl_trigger"
             },
             { 
                 "Action" : "动作",
-                "IsChild" : "true",
+                "IsChild" : true,
                 "handle" : "GetTriggeringTrigger()"
             }
         ],
@@ -90,7 +92,7 @@
             "    set ydl_unit = FirstOfGroup(ydl_group)",
             "    exitwhen ydl_unit == null",
             "    call GroupRemoveUnit(ydl_group, ydl_unit)",
-            "    %0",
+            "%0",
             "endloop",
             "call DestroyGroup(ydl_group)"
         ]
@@ -109,7 +111,7 @@
             "set $loop0 = $1",
             "loop",
             "    exitwhen $loop0 > $2",
-            "    %0",
+            "%0",
             "endloop"
         ]
     },
@@ -135,7 +137,7 @@
         "Actions" : [ 
             {
                 "Action" : "动作",
-                "AutoParam" : "true"
+                "AutoParam" : true
             }
         ],
 

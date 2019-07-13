@@ -269,117 +269,117 @@ bool YDTrigger::onActionToJass(std::string& output,ActionNodePtr node, std::stri
 		
 	}
 	
-	case "YDWETimerStartMultiple"s_hash:
-	{
-
-		std::string param_text;
-		std::string action_text;
-
-		param_text += "set ydl_timer = ";
-		param_text += editor.convertParameter(parameters[0], node, pre_actions) + "\n";
-
-
-		std::map<std::string, std::string> hashVarTable;
-		
-		//找到上一层函数的逆天局部变量表
-		auto mapPtr = node->getLastVarTable();
-
-		node->getChildNodeList(list);
-		for (auto& child : list)
-		{
-			Action* childAction = child->getAction();
-			if (child->getActionId() == 0)//如果是参数区
-			{
-				switch (child->getNameId())
-				{
-					//在逆天计时器参数中使用逆天局部变量
-				case "YDWESetAnyTypeLocalArray"s_hash:
-				case "YDWESetAnyTypeLocalVariable"s_hash:
-				{
-					std::string var_name = childAction->parameters[1]->value;
-					std::string var_type = childAction->parameters[0]->value + 11;
-					hashVarTable.emplace(var_name, var_type);
-					break;
-				}
-				}
-				param_text += editor.spaces[stack];
-				param_text += editor.convertAction(child, pre_actions, false) + "\n";
-			}
-		}
-
-
-		int s = stack;
-		stack = 1;
-		
-		for (auto& child : list)
-		{
-			if (child->getActionId() != 0)//如果是动作区
-			{
-				Action* childAction = child->getAction();
-
-				action_text += editor.spaces[stack];
-				action_text += editor.convertAction(child, pre_actions, false) + "\n";
-			}
-		}
-
-		stack = s;
-
-		//如果当前这层有需要申请的变量
-		auto table = node->getVarTable();
-
-
-		for (auto&[n, t] : hashVarTable)
-		{	
-			table->erase(n);
-
-			if (mapPtr)
-			{
-				mapPtr->erase(n);
-			}
-		}
-
-		output += param_text;
-
-		ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
-
-
-		if (table->size() > 0)
-		{
-			for (auto&[n, t] : *table)
-			{
-				output += editor.spaces[stack];
-				output += setLocal(temp, n, t, getLocal(node, n, t), true) + "\n";
-
-				//将这一层需要传参的变量 传递给上一层
-				if (mapPtr.get() != table.get())
-				{
-					mapPtr->emplace(n, t);
-				}
-			}
-			table->clear();
-		}
-
-		std::string func_name = editor.generate_function_name(node->getTriggerNamePtr());
-		pre_actions += "function " + func_name + " takes nothing returns nothing\n";
-
-
-		onActionsToFuncBegin(pre_actions,node);
-		pre_actions += action_text;
-		onActionsToFuncEnd(pre_actions, node);
-		pre_actions += "endfunction\n";
-
-		output += editor.spaces[stack];
-		output += "call TimerStart(ydl_timer,";
-		output += editor.convertParameter(parameters[1], node, pre_actions);
-		output += ",";
-		output += editor.convertParameter(parameters[2], node, pre_actions);
-		output += ",function ";
-		output += func_name;
-		output += ")";
-
-		return true;
-		
-	}
+	//case "YDWETimerStartMultiple"s_hash:
+	//{
+	//
+	//	std::string param_text;
+	//	std::string action_text;
+	//
+	//	param_text += "set ydl_timer = ";
+	//	param_text += editor.convertParameter(parameters[0], node, pre_actions) + "\n";
+	//
+	//
+	//	std::map<std::string, std::string> hashVarTable;
+	//	
+	//	//找到上一层函数的逆天局部变量表
+	//	auto mapPtr = node->getLastVarTable();
+	//
+	//	node->getChildNodeList(list);
+	//	for (auto& child : list)
+	//	{
+	//		Action* childAction = child->getAction();
+	//		if (child->getActionId() == 0)//如果是参数区
+	//		{
+	//			switch (child->getNameId())
+	//			{
+	//				//在逆天计时器参数中使用逆天局部变量
+	//			case "YDWESetAnyTypeLocalArray"s_hash:
+	//			case "YDWESetAnyTypeLocalVariable"s_hash:
+	//			{
+	//				std::string var_name = childAction->parameters[1]->value;
+	//				std::string var_type = childAction->parameters[0]->value + 11;
+	//				hashVarTable.emplace(var_name, var_type);
+	//				break;
+	//			}
+	//			}
+	//			param_text += editor.spaces[stack];
+	//			param_text += editor.convertAction(child, pre_actions, false) + "\n";
+	//		}
+	//	}
+	//
+	//
+	//	int s = stack;
+	//	stack = 1;
+	//	
+	//	for (auto& child : list)
+	//	{
+	//		if (child->getActionId() != 0)//如果是动作区
+	//		{
+	//			Action* childAction = child->getAction();
+	//
+	//			action_text += editor.spaces[stack];
+	//			action_text += editor.convertAction(child, pre_actions, false) + "\n";
+	//		}
+	//	}
+	//
+	//	stack = s;
+	//
+	//	//如果当前这层有需要申请的变量
+	//	auto table = node->getVarTable();
+	//
+	//
+	//	for (auto&[n, t] : hashVarTable)
+	//	{	
+	//		table->erase(n);
+	//
+	//		if (mapPtr)
+	//		{
+	//			mapPtr->erase(n);
+	//		}
+	//	}
+	//
+	//	output += param_text;
+	//
+	//	ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
+	//
+	//
+	//	if (table->size() > 0)
+	//	{
+	//		for (auto&[n, t] : *table)
+	//		{
+	//			output += editor.spaces[stack];
+	//			output += setLocal(temp, n, t, getLocal(node, n, t), true) + "\n";
+	//
+	//			//将这一层需要传参的变量 传递给上一层
+	//			if (mapPtr.get() != table.get())
+	//			{
+	//				mapPtr->emplace(n, t);
+	//			}
+	//		}
+	//		table->clear();
+	//	}
+	//
+	//	std::string func_name = editor.generate_function_name(node->getTriggerNamePtr());
+	//	pre_actions += "function " + func_name + " takes nothing returns nothing\n";
+	//
+	//
+	//	onActionsToFuncBegin(pre_actions,node);
+	//	pre_actions += action_text;
+	//	onActionsToFuncEnd(pre_actions, node);
+	//	pre_actions += "endfunction\n";
+	//
+	//	output += editor.spaces[stack];
+	//	output += "call TimerStart(ydl_timer,";
+	//	output += editor.convertParameter(parameters[1], node, pre_actions);
+	//	output += ",";
+	//	output += editor.convertParameter(parameters[2], node, pre_actions);
+	//	output += ",function ";
+	//	output += func_name;
+	//	output += ")";
+	//
+	//	return true;
+	//	
+	//}
 
 
 	case "YDWERegisterTriggerMultiple"s_hash:

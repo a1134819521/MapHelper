@@ -1709,17 +1709,66 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 	Action* action = node->getAction();
 	Parameter** parammeters = action->parameters;
 
-	std::string output = "";
+	std::string output;
+	std::string func;
 
 	std::map<std::string, std::string> func_name;
+	int func_stack = 0;
 
-	for (const auto& line : action_def.script_handler.lines) {
+	auto& lines = action_def.script_handler.lines;
+
+	auto& actions = action_def.actions;
+
+	std::map<std::string, std::string> param_table;
+
+	VarTablePtr table, last_table;
+
+	//如果是自动传参的动作组 提前搜索好逆天变量信息
+	if (action_def.is_auto_param)
+	{
+		//找到上一层函数的逆天局部变量表
+		last_table = node->getLastVarTable();
+
+		//如果当前这层有需要申请的变量表
+		table = node->getVarTable();
+
+		std::vector<ActionNodePtr> list;
+		node->getChildNodeList(list);
+
+		for (const auto& child : list)
+		{
+			int child_id = child->getActionId();
+			if (child_id < actions.size() && !actions[child_id].is_child)
+			{
+				uint32_t hash = child->getNameId();
+				Action* childAction = child->getAction();
+
+				switch (child->getNameId())
+				{
+					//在逆天计时器参数中使用逆天局部变量
+				case "YDWESetAnyTypeLocalArray"s_hash:
+				case "YDWESetAnyTypeLocalVariable"s_hash:
+				{
+					std::string var_name = childAction->parameters[1]->value;
+					std::string var_type = childAction->parameters[0]->value + 11;
+					param_table.emplace(var_name, var_type);
+					break;
+				}
+				}
+			}
+		}
+	}
+
+	for (int l = 0; l < lines.size(); l++) 
+	{
+		const auto& line = lines[l];
 		std::string str;
 
 		auto& values = line.values;
 
-		for (const auto& item : values) {
-
+		for (int p = 0; p < values.size(); p++) 
+		{
+			const auto& item = values[p];
 			switch (item.type)
 			{
 
@@ -1746,7 +1795,6 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			
 				std::string value;
 				const std::string& key = item.data;
-				auto& actions = action_def.actions;
 				if (id < actions.size() && actions[id].get_value(key,value))
 				{
 					str += value;
@@ -1784,7 +1832,8 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			{
 				int index = min(item.args_index, action->child_count);
 				ActionNodePtr child = (*node)[index];
-				if (child.get() && child->getAction()) {
+				if (child.get() && child->getAction()) 
+				{
 					str += convertAction(child, pre_actions, false);
 				}
 
@@ -1796,38 +1845,85 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			{
 				std::vector<ActionNodePtr> list;
 				node->getChildNodeList(list);
-
 				int index = item.args_index;
-
+				int s = 0;
 				space_stack++;
-				
+				if (func_stack > 0)
+				{
+					s = space_stack;
+					space_stack = 1;
+				}
+
+				auto& info = actions[index];
+
+
 				for (int i = 0;i < list.size(); i++)
 				{
 					auto& child = list[i];
 					int child_id = child->getActionId();
-					if (index == child_id && child_id < action_def.actions.size())
+					//生成动作
+					if (index == child_id && child_id < actions.size())
 					{
+						if (info.is_child)
+							str += spaces[space_stack];
+						else 
+							str += spaces[space_stack - 1];
+
 						str += convertAction(child, pre_actions, false);
 						if (i + 1 < list.size())
 						{
 							str += "\n";
 						}
-						str += spaces[space_stack];
 					}
+				}
+				
+				if (s > 0) 
+				{
+					space_stack = s;
 				}
 				space_stack--;
 
+				//如果是自动传参的动作组 并且解包的是 参数代码
+				if (action_def.is_auto_param && !info.is_child)
+				{
+					
+					//参数区已经手动传参，不需要再自动传
+					for (auto&[n, t] : param_table)
+					{
+						table->erase(n);
+						last_table->erase(n);
+					}
+
+					ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
+
+					//将当前这层变量表转换成代码
+					if (table->size() > 0)
+					{
+						for (auto&[n, t] : *table)
+						{
+							str += spaces[space_stack];
+							str += m_ydweTrigger->setLocal(temp, n, t, m_ydweTrigger->getLocal(node, n, t), true) + "\n";
+
+							//将这一层需要传参的变量 传递给上一层
+							if (last_table.get() != table.get())
+							{
+								last_table->emplace(n, t);
+							}
+						}
+						table->clear();
+					}
+				}
 				break;
 			}
+
 			//其余内容
 			case word::ValueInfo::Type::code:
-				str += item.data;
-				char c = item.data[0];
-				if (c == '\r' || c == '\n') 
+				//除了第一行之外，在每行开头处增加缩进
+				if (!output.empty() && p == 0)
 				{
 					str += spaces[space_stack];
 				}
-
+				str += item.data;
 				break;
 			}
 		}
@@ -1841,23 +1937,22 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 				if (values.size() > 0)
 				{
 					auto& data = values[0].data;
-					std::cout << data << "\n";
 					if (data.find("endfunction") != std::string::npos)
 					{
-						m_ydweTrigger->onActionsToFuncEnd(pre_actions, node);
-						pre_actions += "\n";
-						pre_actions += str;
-						pre_actions += "\n";
+						m_ydweTrigger->onActionsToFuncEnd(func, node);
+						func += str;
+						func_stack--;
 						break;
 					}
 					else if (data.find("function") != std::string::npos) {
-						pre_actions += str;
-						m_ydweTrigger->onActionsToFuncBegin(pre_actions, node);
+						func += str;
+						m_ydweTrigger->onActionsToFuncBegin(func, node);
+						func_stack++;
 						break;
 					}
 				}
 			}
-			pre_actions += str;
+			func += str;
 			break;
 		}
 		case word::LineInfo::Type::local: 
@@ -1868,6 +1963,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 		}
 		
 	}
+	pre_actions += func;
 	return output;
 }
 
