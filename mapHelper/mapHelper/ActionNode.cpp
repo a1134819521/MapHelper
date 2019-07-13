@@ -1,5 +1,5 @@
 #include "ActionNode.h"
-
+#include "TriggerEditor.h"
 
 ActionNode::ActionNode()
 	:m_action(0),
@@ -126,6 +126,8 @@ ActionNodePtr ActionNode::getBranchNode()
 	ActionNodePtr branch = shared_from_this();
 	ActionNodePtr parent = m_parent;
 
+	auto& editor = get_trigger_editor();
+	auto& group = editor.group;
 	//搜索父节点
 	while (parent.get())
 	{
@@ -133,32 +135,10 @@ ActionNodePtr ActionNode::getBranchNode()
 
 		if (parent->m_action)
 		{
-			switch (parent->m_nameId)
-			{
-			case "ForForceMultiple"s_hash:
-			case "ForGroupMultiple"s_hash:
-			case "EnumDestructablesInRectAllMultiple"s_hash:
-			case "EnumDestructablesInCircleBJMultiple"s_hash:
-			case "EnumItemsInRectBJMultiple"s_hash:
-			case "YDWEExecuteTriggerMultiple"s_hash:
-			case "YDWETimerStartMultiple"s_hash:
-			case "YDWERegisterTriggerMultiple"s_hash:
-			case "AndMultiple"s_hash:
-			case "OrMultiple"s_hash:
-			case "DzTriggerRegisterMouseEventMultiple"s_hash:
-			case "DzTriggerRegisterKeyEventMultiple"s_hash:
-			case "DzTriggerRegisterMouseWheelEventMultiple"s_hash:
-			case "DzTriggerRegisterMouseMoveEventMultiple"s_hash:
-			case "DzTriggerRegisterWindowResizeEventMultiple"s_hash:
-			case "DzFrameSetUpdateCallbackMultiple"s_hash:
-			case "DzFrameSetScriptMultiple"s_hash:
-			case "YDWEForLoopLocVarMultiple"s_hash:
-			case "YDWEEnumUnitsInRangeMultiple"s_hash://这个节点不会生成函数 但是要用来判断是否处于该节点下
-				isBreak = true; break;
-			default:
+			auto action_def = group.get_action_def(parent->getName());
+			if (!action_def.actions.empty() && parent->m_nameId != "IfThenElseMultiple"s_hash)
 				break;
-			}
-
+			
 			for (size_t k = 0; k < parent->m_action->param_count; k++) 
 			{
 				Parameter* param = parent->m_action->parameters[k];
@@ -274,6 +254,10 @@ VarTablePtr ActionNode::getLastVarTable()
 	ActionNode* node = this;
 
 	VarTablePtr retval;
+
+	auto& editor = get_trigger_editor();
+	auto& group = editor.group;
+
 	while (node)
 	{
 		if (node->m_hashVarTablePtr.get())
@@ -281,14 +265,17 @@ VarTablePtr ActionNode::getLastVarTable()
 			retval = node->m_hashVarTablePtr;
 			break;
 		}
-		else if(node->m_action != m_action && (node->isRootNode()
-			|| node->m_nameId == "YDWETimerStartMultiple"s_hash
-			|| node->m_nameId == "YDWEExecuteTriggerMultiple"s_hash
-			|| node->m_nameId == "YDWERegisterTriggerMultiple"s_hash))
+		else
 		{
-			retval = VarTablePtr(new std::map<std::string, std::string>);
-			node->m_hashVarTablePtr = retval;
-			break;
+			auto action_def = group.get_action_def(node->getName());
+
+			if (node->m_action != m_action && (node->isRootNode()
+				|| action_def.is_auto_param))
+			{
+				retval = VarTablePtr(new std::map<std::string, std::string>);
+				node->m_hashVarTablePtr = retval;
+				break;
+			}
 		}
 		node = node->m_parent.get();
 	}

@@ -13,6 +13,60 @@
         ""
     ],
 
+    "IfThenElseMultiple" : {
+
+        "Actions" : [
+            {
+                "Condition" : "If - 条件",
+                "Compare" : "and"
+            },
+            {
+                "Action" : "Then - 动作",
+                "IsChild" : true
+            },
+            {
+                "Action" : "Else - 动作",
+                "IsChild" : true
+            }
+        ],
+
+        "Script" : [
+            "if (%0) then",
+            "%1",
+            "else",
+            "%2",
+            "endif"
+        ]
+    },
+
+    "AndMultiple" : {
+
+        "Actions" : [
+            {
+                "Condition" : "And - 所有条件成立",
+                "Compare" : "and"
+            }
+        ],
+
+        "Script" : [
+            "(%0)"
+        ]
+    },
+
+    "OrMultiple" : {
+
+        "Actions" : [
+            {
+                "Condition" : "Or - 任意条件成立",
+                "Compare" : "or"
+            }
+        ],
+
+        "Script" : [
+            "(%0)"
+        ]
+    },
+
     "ForLoopAMultiple" : {
         "Actions" : [
             { 

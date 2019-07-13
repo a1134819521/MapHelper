@@ -1666,7 +1666,11 @@ for (auto& node : list)
 		space_stack = 1;
 		action_code += spaces[space_stack];
 
-		action_code += convertAction(node, pre_actions, false) + "\n";
+		action_code += convertAction(node, pre_actions, false);
+		if (action_code[action_code.size() - 1] != '\n')
+		{
+			action_code += "\n";
+		}
 		break;
 	default:
 		break;
@@ -1845,6 +1849,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			{
 				std::vector<ActionNodePtr> list;
 				node->getChildNodeList(list);
+
 				int index = item.args_index;
 				int s = 0;
 				space_stack++;
@@ -1854,27 +1859,34 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 					space_stack = 1;
 				}
 
+				bool firstBoolexper = true;
+
 				auto& info = actions[index];
 
-				for (int i = 0;i < list.size(); i++)
+				for (int i = 0; i < list.size(); i++)
 				{
 					auto& child = list[i];
 					Action* childAction = child->getAction();
 
 					int child_id = child->getActionId();
 
+					auto type = child->getActionType();
+
 					//生成动作
 					if (index != child_id || child_id >= actions.size())
 					{
 						continue;
 					}
-					if (info.is_child)
-						str += spaces[space_stack];
-					else 
-						str += spaces[space_stack - 1];
+					if (type != Action::Type::condition)
+					{
+						if (info.is_child)
+							str += spaces[space_stack];
+						else
+							str += spaces[space_stack - 1];
+					}
 					
 					//事件需要默认一个参数
-					if (child->getActionType() == Action::Type::event)
+					if (type == Action::Type::event)
 					{
 						if (child->getNameId() == "MapInitializationEvent"s_hash)
 						{
@@ -1899,6 +1911,25 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 						str += ")\n";
 						m_ydweTrigger->onRegisterEvent2(str, child);
 
+					}
+					else if (type == Action::Type::condition)
+					{
+						std::string value;
+
+						if (firstBoolexper)
+						{
+							firstBoolexper = false;
+						}
+						else
+						{
+							if (!actions[index].get_value("Compare", value))
+							{
+								value = "and";
+							}
+							value = " " + value + " ";
+						}
+						str += value;
+						str += "(" + convertAction(child, pre_actions, true) + ")";
 					}
 					else
 					{
@@ -1955,6 +1986,12 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 				if (!output.empty() && p == 0)
 				{
 					str += spaces[space_stack];
+				}
+				if (item.data[0] == '\n' && str.size() > 0)
+				{
+					if (str[str.size() - 1] != '\n')
+						str += item.data;
+					break;
 				}
 				str += item.data;
 				break;
@@ -2049,119 +2086,6 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 		output += "endloop";
 		return output;
 	}
-
-	
-	case "IfThenElseMultiple"s_hash:
-	{
-		std::string iftext;
-		std::string thentext;
-		std::string elsetext;
-
-
-		bool firstBoolexper = true;
-
-		space_stack++;
-
-		node->getChildNodeList(list);
-
-		for (auto& child : list)
-		{
-			switch (child->getActionType())
-			{
-			case Action::Type::condition:
-			{
-				if (firstBoolexper)
-				{
-					firstBoolexper = false;
-				}
-				else
-				{
-					iftext += " and ";
-				}
-				iftext += "(" + convertAction(child, pre_actions, true) + ")";
-				break;
-			}
-			case Action::Type::action:
-			{
-				auto action = child->getAction();
-				if (action->child_flag == 1)
-				{
-					thentext += spaces[space_stack];
-					thentext += convertAction(child, pre_actions, false) + "\n";
-				}
-				else
-				{
-					elsetext += spaces[space_stack];
-					elsetext += convertAction(child, pre_actions, false) + "\n";
-				}
-				break;
-			}
-			default:
-				break;
-			}
-		}
-		if (iftext.empty())
-		{
-			iftext += "true";
-		}
-		space_stack--;
-		output += "if (";
-		output += iftext;
-		output += ") then\n";
-		output += thentext;
-		output += spaces[space_stack];
-		output += "else\n";
-		output += elsetext;
-		output += spaces[space_stack];
-		output += "endif";
-
-		return output;
-	}
-
-	case "AndMultiple"s_hash:
-	{
-
-		std::string iftext;
-
-		node->getChildNodeList(list);
-		size_t i = 0;
-		for (auto& child : list)
-		{
-			iftext += "(" + convertAction(child, pre_actions, true) + ")";
-			if (++i < list.size())
-			{
-				iftext += " and ";
-			}
-		}
-		if (i == 0)
-		{
-			return "true";
-		}
-		return iftext;
-	}
-
-	case "OrMultiple"s_hash:
-	{
-
-		std::string iftext;
-
-		node->getChildNodeList(list);
-		size_t i = 0;
-		for (auto& child : list)
-		{
-			iftext += "(" + convertAction(child, pre_actions, true) + ")";
-			if (++i < list.size())
-			{
-				iftext += " or ";
-			}
-		}
-		if (i == 0)
-		{
-			return "true";
-		}
-		return iftext;
-	}
-
 
 	case "SetVariable"s_hash:
 	{

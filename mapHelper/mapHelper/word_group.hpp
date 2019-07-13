@@ -123,7 +123,7 @@ namespace word {
 					if (jtype.is_string()) {
 						type_id = 2;
 					}
-					else if (jtype = action["Condtion"], jtype.is_string()) {
+					else if (jtype = action["Condition"], jtype.is_string()) {
 						type_id = 1;
 					}
 					else if (jtype = action["Event"], jtype.is_string()) {
