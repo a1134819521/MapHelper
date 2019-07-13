@@ -1940,6 +1940,10 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 						}
 					}
 				}
+				if (info.type_id == Action::Type::condition && firstBoolexper)
+				{
+					str += "true";
+				}
 				
 				if (s > 0) 
 				{
