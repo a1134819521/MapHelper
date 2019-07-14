@@ -26,7 +26,7 @@ public:
 
 	std::string convertTrigger(Trigger* trigger);
 
-	std::string convertActionGroup(ActionNodePtr node,word::ActionDef& action_def, std::string& pre_actions);
+	std::string convertActionDef(ActionNodePtr node,word::ActionDef& action_def, std::string& pre_actions);
 
 	std::string convertAction(ActionNodePtr node, std::string& pre_actions, bool nested);
 

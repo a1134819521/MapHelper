@@ -1708,7 +1708,7 @@ return seperator + "// Trigger: " + root->getName() + "\n" + logo + seperator + 
 }
 
 
-std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDef& action_def, std::string& pre_actions)
+std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef& action_def, std::string& pre_actions)
 {
 	Action* action = node->getAction();
 	Parameter** parammeters = action->parameters;
@@ -1728,7 +1728,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 	VarTablePtr table, last_table;
 
 	//如果是自动传参的动作组 提前搜索好逆天变量信息
-	if (action_def.is_auto_param)
+	if (action_def.is_group && action_def.is_auto_param)
 	{
 		//找到上一层函数的逆天局部变量表
 		last_table = node->getLastVarTable();
@@ -1741,7 +1741,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 
 		for (const auto& child : list)
 		{
-			int child_id = child->getActionId();
+			uint32_t child_id = child->getActionId();
 			if (child_id < actions.size() && !actions[child_id].is_child)
 			{
 				uint32_t hash = child->getNameId();
@@ -1763,14 +1763,14 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 		}
 	}
 
-	for (int l = 0; l < lines.size(); l++) 
+	for (size_t l = 0; l < lines.size(); l++) 
 	{
 		const auto& line = lines[l];
 		std::string str;
 
 		auto& values = line.values;
 
-		for (int p = 0; p < values.size(); p++) 
+		for (size_t p = 0; p < values.size(); p++)
 		{
 			const auto& item = values[p];
 			switch (item.type)
@@ -1779,7 +1779,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			//$0获取参数
 			case word::ValueInfo::Type::args:
 			{
-				int index = min(item.args_index, action->param_count);
+				int index = min(item.args_index, (int)action->param_count);
 				str += convertParameter(parammeters[index], node, pre_actions);
 				break;
 			}
@@ -1787,7 +1787,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			//~0 获取参数类型
 			case word::ValueInfo::Type::args_type:
 			{
-				int index = min(item.args_index, action->param_count);
+				int index = min(item.args_index, (int)action->param_count);
 				str += parammeters[index]->type_name;
 				break;
 			}
@@ -1795,7 +1795,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			//$key 根据对应的动作所属类型 来取对应数值
 			case word::ValueInfo::Type::param:
 			{
-				int id = 0;
+				uint32_t id = 0;
 			
 				std::string value;
 				const std::string& key = item.data;
@@ -1822,7 +1822,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 				{
 					//如果是取参数转换为循环变量名的话
 					int index = atoi(key.substr(4, key.length()).c_str());
-					index = min(index, action->param_count);
+					index = min(index, (int)action->param_count);
 					std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
 					convert_loop_var_name(name);
 					str += name;
@@ -1834,7 +1834,7 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			//^0 生成指定的子动作
 			case word::ValueInfo::Type::action:
 			{
-				int index = min(item.args_index, action->child_count);
+				int index = min(item.args_index, (int)action->child_count);
 				ActionNodePtr child = (*node)[index];
 				if (child.get() && child->getAction()) 
 				{
@@ -1847,11 +1847,21 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 			// %0 解包动作组
 			case word::ValueInfo::Type::group:
 			{
-				std::vector<ActionNodePtr> list;
-				node->getChildNodeList(list);
+				
+				//只有动作组可以解包
+				if (!action_def.is_group)
+					break;
+
+				int s = 0;
 
 				int index = item.args_index;
-				int s = 0;
+				bool firstBoolexper = true;
+				auto& info = actions[index];
+
+				std::vector<ActionNodePtr> list;
+
+				node->getChildNodeList(list);
+
 				space_stack++;
 				if (func_stack > 0)
 				{
@@ -1859,16 +1869,12 @@ std::string TriggerEditor::convertActionGroup(ActionNodePtr node, word::ActionDe
 					space_stack = 1;
 				}
 
-				bool firstBoolexper = true;
-
-				auto& info = actions[index];
-
-				for (int i = 0; i < list.size(); i++)
+				for (size_t i = 0; i < list.size(); i++)
 				{
 					auto& child = list[i];
 					Action* childAction = child->getAction();
 
-					int child_id = child->getActionId();
+					uint32_t child_id = child->getActionId();
 
 					auto type = child->getActionType();
 
@@ -2064,7 +2070,8 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 	auto action_def = group.get_action_def(node->getName());
 	if (!action_def.actions.empty())
 	{
-		return convertActionGroup(node,action_def, pre_actions);
+
+		return convertActionDef(node,action_def, pre_actions);
 	}
 
 	std::string output;

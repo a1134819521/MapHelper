@@ -51,6 +51,8 @@ namespace word {
 	{
 		bool is_auto_param = false;
 
+		bool is_group = true;
+
 		std::vector<ActionInfo> actions;
 
 		//½Å±¾Ä£°åÓï·¨Ê÷
@@ -151,7 +153,7 @@ namespace word {
 				std::string script;
 				auto array = jscript.array_items();
 
-				for (int i = 0; i < array.size(); i++) {
+				for (size_t i = 0; i < array.size(); i++) {
 					const auto& line = array[i];
 					script += line.string_value();
 

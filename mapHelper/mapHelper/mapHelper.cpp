@@ -118,7 +118,7 @@ static int __fastcall fakeGetChildCount(Action* action)
 	auto& editor = get_trigger_editor();
 	auto action_def = editor.group.get_action_def(action->name);
 
-	if (!action_def.actions.empty())
+	if (action_def.is_group && !action_def.actions.empty())
 	{
 		return action_def.actions.size();
 	}
@@ -126,13 +126,13 @@ static int __fastcall fakeGetChildCount(Action* action)
 }
 
 //修改特定的UI名字
-static int __fastcall fakeGetString(Action* action, uint32_t edx,int index, char* buffer, int len)
+static int __fastcall fakeGetString(Action* action, uint32_t edx,uint32_t index, char* buffer, int len)
 {
 
 	auto& editor = get_trigger_editor();
 	auto action_def = editor.group.get_action_def(action->name);
 
-	if (!action_def.actions.empty())
+	if (action_def.is_group && !action_def.actions.empty())
 	{
 		index = min(index, action_def.actions.size() - 1);
 		strncpy(buffer, action_def.actions[index].name.c_str(), len);
@@ -148,7 +148,7 @@ static int __fastcall fakeGetActionType(Action* action, uint32_t edx, int index)
 	auto& editor = get_trigger_editor();
 	auto action_def = editor.group.get_action_def(action->name);
 
-	if (!action_def.actions.empty())
+	if (action_def.is_group && !action_def.actions.empty())
 	{
 		index = (std::min)(index, (int)action_def.actions.size() - 1);
 		return action_def.actions[index].type_id;

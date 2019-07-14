@@ -136,9 +136,8 @@ ActionNodePtr ActionNode::getBranchNode()
 		if (parent->m_action)
 		{
 			auto action_def = group.get_action_def(parent->getName());
-			if (!action_def.actions.empty() && parent->m_nameId != "IfThenElseMultiple"s_hash)
+			if (action_def.is_group && !action_def.actions.empty() && parent->m_nameId != "IfThenElseMultiple"s_hash)
 				break;
-			
 			for (size_t k = 0; k < parent->m_action->param_count; k++) 
 			{
 				Parameter* param = parent->m_action->parameters[k];
@@ -269,8 +268,7 @@ VarTablePtr ActionNode::getLastVarTable()
 		{
 			auto action_def = group.get_action_def(node->getName());
 
-			if (node->m_action != m_action && (node->isRootNode()
-				|| action_def.is_auto_param))
+			if (node->m_action != m_action && (node->isRootNode() || (action_def.is_auto_param && action_def.is_group)))
 			{
 				retval = VarTablePtr(new std::map<std::string, std::string>);
 				node->m_hashVarTablePtr = retval;
