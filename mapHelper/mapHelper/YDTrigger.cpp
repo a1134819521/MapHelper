@@ -190,17 +190,17 @@ bool YDTrigger::onActionToJass(std::string& output,ActionNodePtr node, std::stri
 	
 	
 
-	case "YDWESetAnyTypeLocalVariable"s_hash:
-	{
-	
-		std::string var_name = parameters[1]->value;
-		std::string var_type= parameters[0]->value + 11;
-
-		std::string var_value = editor.convertParameter(parameters[2], node, pre_actions);
-	
-		output +=setLocal(node,var_name, var_type, var_value);
-		return true;
-	}
+	//case "YDWESetAnyTypeLocalVariable"s_hash:
+	//{
+	//
+	//	std::string var_name = parameters[1]->value;
+	//	std::string var_type= parameters[0]->value + 11;
+	//
+	//	std::string var_value = editor.convertParameter(parameters[2], node, pre_actions);
+	//
+	//	output +=setLocal(node,var_name, var_type, var_value);
+	//	return true;
+	//}
 	case "YDWESetAnyTypeLocalArray"s_hash:
 	{
 
@@ -778,19 +778,11 @@ void YDTrigger::onActionsToFuncBegin(std::string& funcCode, ActionNodePtr node)
 
 	auto& editor = get_trigger_editor();
 
-	if (!editor.local_script.empty())
+	for (auto&[name, type] : editor.localTable)
 	{
-		std::regex reg("\\s*local\\s+(\\w+)\\s+(\\w+)\\s*");
-		auto words_end = std::sregex_iterator();
-		auto words_begin = std::sregex_iterator(editor.local_script.begin(), editor.local_script.end(), reg);
-
-		//正则表达式解析 需要申明的局部变量类型跟名字 防止重复申明
-		for (; words_begin != words_end; ++words_begin)
-		{
-			addLocalVar(words_begin->str(1), words_begin->str(2));
-		}
+		localTable->emplace(name, type);
 	}
-
+	editor.localTable.clear();
 
 	for (auto&[name, type] : *localTable)
 	{
@@ -810,7 +802,7 @@ void YDTrigger::onActionsToFuncEnd(std::string& funcCode, ActionNodePtr node)
 
 	auto& editor = get_trigger_editor();
 
-	editor.local_script.clear();
+	
 
 	if (node->isRootNode() && node->m_haveHashLocal)
 	{

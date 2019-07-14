@@ -16,7 +16,7 @@ namespace word {
 		//value
 		args = '$',
 		args_type = '~',
-		action = '^',
+		args_type2 = '^',
 		group = '%',
 
 		//line
@@ -61,7 +61,7 @@ namespace word {
 		{
 		case cflag::args:
 		case cflag::args_type:
-		case cflag::action:
+		case cflag::args_type2:
 		case cflag::group:
 		case cflag::function:
 		case cflag::local:
@@ -81,7 +81,9 @@ namespace word {
 		uint8_t d = (uint8_t)ctypemap[(unsigned char)c];
 		return d & (uint8_t)ctype::digit || d & (uint8_t)ctype::alpha;
 	}
-	
+	inline bool is_alpha(char c) {
+		return (uint8_t)ctypemap[(unsigned char)c] & (uint8_t)ctype::alpha;
+	}
 	inline bool equal(const char* p, const char c) {
 		return *p == c;
 	}
@@ -159,7 +161,9 @@ namespace word {
 			std::string name;
 			z = p;
 			if (parse_name(h,name)) {
-				h.accept_param(name);
+				index = -1;
+				parse_index(h, index);
+				h.accept_param(name,index);
 				return true;
 			}
 			return false;
@@ -178,12 +182,12 @@ namespace word {
 
 
 
-		bool parse_action_id(Handler& h) {
-			expect(z, cflag::action);
-			consume(z, cflag::action);
+		bool parse_args_type2(Handler& h) {
+			expect(z, cflag::args_type2);
+			consume(z, cflag::args_type2);
 			int index;
 			if (parse_index(h,index)) {
-				h.accept_action(index);
+				h.accept_args_type2(index);
 				return true;
 			}
 			return false;
@@ -216,7 +220,7 @@ namespace word {
 		bool parse_name(Handler& h,std::string& name) {
 			parse_whitespace(h);
 			name.clear();
-			while (!equal(z, '\0') && is_alnum(*z)) {
+			while (!equal(z, '\0') && is_alpha(*z)) {
 				name += *z;
 				z++;
 			}
@@ -272,7 +276,7 @@ namespace word {
 				{
 				case cflag::args: parse_args(h); break;
 				case cflag::args_type: parse_args_type(h); break;
-				case cflag::action: parse_action(h); break;
+				case cflag::args_type2: parse_args_type2(h); break;
 				case cflag::group: parse_group(h); break;
 				default:
 					parse_code(h); 

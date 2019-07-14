@@ -1612,7 +1612,7 @@ std::string TriggerEditor::convertTrigger(Trigger* trigger)
 	{
 		m_ydweTrigger->onActionsToFuncBegin(actions, root);
 
-		m_ydweTrigger->onRegisterTrigger(events, root->getName(), trigger_variable_name);
+		m_ydweTrigger->onRegisterTrigger(events, *root->getName(), trigger_variable_name);
 	}
 
 std::vector<ActionNodePtr> list;
@@ -1704,11 +1704,11 @@ events += "endfunction\n\n";
 std::string logo = u8"//自定义jass生成器 作者： 阿七  \n//有bug到魔兽地图编辑器吧 @w4454962 \n";
 
 
-return seperator + "// Trigger: " + root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
+return seperator + "// Trigger: " + *root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
 }
 
 
-std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef& action_def, std::string& pre_actions)
+std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefPtr action_def, std::string& pre_actions)
 {
 	Action* action = node->getAction();
 	Parameter** parammeters = action->parameters;
@@ -1716,52 +1716,112 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 	std::string output;
 	std::string func;
 
+	std::map<std::string, std::string> param_table;
+
 	std::map<std::string, std::string> func_name;
 	int func_stack = 0;
 
-	auto& lines = action_def.script_handler.lines;
+	uint32_t param_group_id = 0;
 
-	auto& actions = action_def.actions;
+	word::ActionInoListPtr group_ptr;
 
-	std::map<std::string, std::string> param_table;
+	word::HandlerPtr script_ptr;
+	
+	VarTablePtr table;
+	VarTablePtr last_table;
 
-	VarTablePtr table, last_table;
+	word::ActionDef::TYPE def_type = action_def->get_type();
 
-	//如果是自动传参的动作组 提前搜索好逆天变量信息
-	if (action_def.is_group && action_def.is_auto_param)
+	//如果转换的是动作组
+	if (action_def->is_group())
 	{
-		//找到上一层函数的逆天局部变量表
-		last_table = node->getLastVarTable();
+		group_ptr = action_def->get_group();
 
-		//如果当前这层有需要申请的变量表
-		table = node->getVarTable();
+		script_ptr = action_def->get_group_script();
 
-		std::vector<ActionNodePtr> list;
-		node->getChildNodeList(list);
-
-		for (const auto& child : list)
+		if (!group_ptr || !script_ptr)
 		{
-			uint32_t child_id = child->getActionId();
-			if (child_id < actions.size() && !actions[child_id].is_child)
-			{
-				uint32_t hash = child->getNameId();
-				Action* childAction = child->getAction();
+			return "";
+		}
+		//如果是自动传参的动作组 提前搜索好逆天变量信息
+		if (action_def->is_auto_param())
+		{
+			//找到上一层函数的逆天局部变量表
+			last_table = node->getLastVarTable();
 
-				switch (child->getNameId())
+			//如果当前这层有需要申请的变量表
+			table = node->getVarTable();
+
+			std::vector<ActionNodePtr> list;
+			node->getChildNodeList(list);
+
+			for (const auto& child : list)
+			{
+				uint32_t child_id = child->getActionId();
+				auto& info = (*group_ptr)[child_id];
+				if (child_id < group_ptr->size() && !info.is_child)
 				{
-					//在逆天计时器参数中使用逆天局部变量
-				case "YDWESetAnyTypeLocalArray"s_hash:
-				case "YDWESetAnyTypeLocalVariable"s_hash:
-				{
-					std::string var_name = childAction->parameters[1]->value;
-					std::string var_type = childAction->parameters[0]->value + 11;
-					param_table.emplace(var_name, var_type);
-					break;
-				}
+					uint32_t hash = child->getNameId();
+					Action* childAction = child->getAction();
+
+					switch (child->getNameId())
+					{
+						//在逆天计时器参数中使用逆天局部变量
+					case "YDWESetAnyTypeLocalArray"s_hash:
+					case "YDWESetAnyTypeLocalVariable"s_hash:
+					{
+						std::string var_name = childAction->parameters[1]->value;
+						std::string var_type = childAction->parameters[0]->value + 11;
+						param_table.emplace(var_name, var_type);
+						break;
+					}
+					}
 				}
 			}
 		}
 	}
+	else if (def_type == word::ActionDef::ACTION)
+	{
+		ActionNodePtr branch = node->getBranchNode();
+		ActionNodePtr parent = branch->getParentNode();
+
+		std::string parent_name = "default";
+
+		if (!parent || parent->isRootNode())//如果是在触发中
+		{
+			parent_name = "trigger";
+		} 
+		else
+		{
+			ActionNodePtr ptr = branch;
+			//否则搜素上一层带传参的父节点
+			while (!ptr->isRootNode())
+			{
+				ActionNodePtr parent_ptr = ptr->getParentNode();
+				auto parent_def_ptr = group.get_action_def(*parent_ptr->getName());
+				if (parent_def_ptr && parent_def_ptr->is_auto_param())
+				{
+					param_group_id = ptr->getActionId();
+					group_ptr = parent_def_ptr->get_group();
+					parent_name = *parent_ptr->getName();
+					break;
+				}
+				ptr = parent_ptr;
+			}
+		}
+		script_ptr = action_def->get_script(parent_name);
+	}
+	else if (def_type == word::ActionDef::VALUE)
+	{
+
+	}
+
+	if (!script_ptr)
+	{
+		return "";
+	}
+
+	auto& lines = script_ptr->lines;
 
 	for (size_t l = 0; l < lines.size(); l++) 
 	{
@@ -1791,72 +1851,84 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 				str += parammeters[index]->type_name;
 				break;
 			}
+			//^0 获取逆天参数类型
+			case word::ValueInfo::Type::args_type2:
+			{
+				int index = min(item.args_index, (int)action->param_count);
+				str += parammeters[index]->value + 11; //typename_01_integer + 11 = integer
+				break;
+			}
 
 			//$key 根据对应的动作所属类型 来取对应数值
 			case word::ValueInfo::Type::param:
 			{
-				uint32_t id = 0;
-			
-				std::string value;
 				const std::string& key = item.data;
-				if (id < actions.size() && actions[id].get_value(key,value))
+
+				if (group_ptr)
 				{
-					str += value;
+					auto& info = (*group_ptr)[param_group_id];
+					std::string value;
+					if (param_group_id < group_ptr->size() && info.get_value(key, value))
+					{
+						str += value;
+						break;
+					}
 				}
-				else if (key.find("func") != std::string::npos)
+				switch (hash_(key.c_str()))
 				{
-					//如果是 带有func的字段 则自动生成一个函数名
-					auto it = func_name.find(key);
+
+				case "func"s_hash:
+				{
+					//生成 或取一个函数名
+					std::string func_index = std::to_string(item.args_index);
+					auto it = func_name.find(func_index);
 					if (it == func_name.end())
 					{
 						std::string name = generate_function_name(node->getTriggerNamePtr());
-						func_name[key] = name;
+						func_name[func_index] = name;
 						str += name;
 					}
 					else
 					{
 						str += it->second;
 					}
+					break;
 				}
-				else if (strncmp(key.c_str(), "loop", 4) == 0)
+				case "loop"s_hash:
 				{
 					//如果是取参数转换为循环变量名的话
-					int index = atoi(key.substr(4, key.length()).c_str());
+					int index = item.args_index;
+					if (index == -1) break;
 					index = min(index, (int)action->param_count);
 					std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
 					convert_loop_var_name(name);
 					str += name;
+					break;
 				}
-			
-				break;
-			}
-
-			//^0 生成指定的子动作
-			case word::ValueInfo::Type::action:
-			{
-				int index = min(item.args_index, (int)action->child_count);
-				ActionNodePtr child = (*node)[index];
-				if (child.get() && child->getAction()) 
+				case "retn"s_hash:
 				{
-					str += convertAction(child, pre_actions, false);
-				}
 
+				}
+				}
 				break;
+
 			}
+
+			
 
 			// %0 解包动作组
 			case word::ValueInfo::Type::group:
 			{
 				
 				//只有动作组可以解包
-				if (!action_def.is_group)
+				if (!action_def->is_group())
 					break;
 
 				int s = 0;
 
 				int index = item.args_index;
 				bool firstBoolexper = true;
-				auto& info = actions[index];
+				auto& info = (*group_ptr)[index];
 
 				std::vector<ActionNodePtr> list;
 
@@ -1879,7 +1951,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 					auto type = child->getActionType();
 
 					//生成动作
-					if (index != child_id || child_id >= actions.size())
+					if (index != child_id || child_id >= group_ptr->size())
 					{
 						continue;
 					}
@@ -1903,7 +1975,8 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 						str += "call " + getBaseName(child) + "(";
 
 						std::string value;
-						if (!actions[index].get_value("handle", value)) 
+						auto& info = (*group_ptr)[index];
+						if (!info.get_value("handle", value)) 
 						{
 							value = "null";
 						}
@@ -1928,7 +2001,8 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 						}
 						else
 						{
-							if (!actions[index].get_value("Compare", value))
+							auto& info = (*group_ptr)[index];
+							if (!info.get_value("Compare", value))
 							{
 								value = "and";
 							}
@@ -1958,7 +2032,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 				space_stack--;
 
 				//如果是自动传参的动作组 并且解包的是 参数代码
-				if (action_def.is_auto_param && !info.is_child)
+				if (action_def->is_auto_param() && !info.is_child)
 				{
 					
 					//参数区已经手动传参，不需要再自动传
@@ -2036,8 +2110,20 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDef&
 			break;
 		}
 		case word::LineInfo::Type::local: 
-			local_script += str; 
+		{
+			if (!str.empty())
+			{
+				std::regex reg("\\s*local\\s+(\\w+)\\s+(\\w+)\\s*");
+				auto words_end = std::sregex_iterator();
+				auto words_begin = std::sregex_iterator(str.begin(), str.end(), reg);
+				//正则表达式解析 需要申明的局部变量类型跟名字 防止重复申明
+				for (; words_begin != words_end; ++words_begin)
+				{
+					localTable.emplace(words_begin->str(2),words_begin->str(1));
+				}
+			}
 			break;
+		}
 		case word::LineInfo::Type::action: 
 			output += str;
 		}
@@ -2067,11 +2153,13 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 		}
 	}
 
-	auto action_def = group.get_action_def(node->getName());
-	if (!action_def.actions.empty())
+	auto def_ptr = group.get_action_def(*node->getName());
+	if (def_ptr)
 	{
-
-		return convertActionDef(node,action_def, pre_actions);
+		//auto group_ptr = def_ptr->get_group();
+		//if (group_ptr) {
+			return convertActionDef(node, def_ptr, pre_actions);
+		//}
 	}
 
 	std::string output;
@@ -2370,7 +2458,7 @@ std::string TriggerEditor::convertCall(ActionNodePtr node, std::string& pre_acti
 		break;
 	}
 
-	if (node->getName().substr(0, 15) == "OperatorCompare") {
+	if (node->getName()->substr(0, 15) == "OperatorCompare") {
 		output += convertParameter(parameters[0], node, pre_actions);
 		output += " " + convertParameter(parameters[1], node, pre_actions) + " ";
 		output += convertParameter(parameters[2], node, pre_actions);
@@ -2435,7 +2523,7 @@ std::string TriggerEditor::getBaseType(const std::string& type) const
 
 std::string TriggerEditor::getBaseName(ActionNodePtr node)
 {
-	auto name = node->getName();
+	auto name = *node->getName();
 	const auto key{ std::string("_" + name + "_ScriptName") };
 	std::string parent_key;
 	if (node->getActionType() == Action::event)

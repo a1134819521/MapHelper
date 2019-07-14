@@ -10,8 +10,8 @@ namespace word {
 		enum Type {
 			args,
 			args_type,
+			args_type2,
 			param,
-			action,
 			group,
 			code
 		};
@@ -66,12 +66,12 @@ namespace word {
 			accept_value(ValueInfo::Type::args_type, index);
 		}
 
-		void accept_param(const std::string& key) {
-			accept_value(ValueInfo::Type::param, key);
+		void accept_param(const std::string& key,int index) {
+			accept_value({ ValueInfo::Type::param,key,index });
 		}
 		
-		void accept_action(int index) {
-			accept_value(ValueInfo::Type::action, index);
+		void accept_args_type2(int index) {
+			accept_value(ValueInfo::Type::args_type2, index);
 		}
 
 		void accept_group(int index) {

@@ -29,7 +29,11 @@ ActionNode::ActionNode(Action* action, ActionNodePtr parent)
 {
 	m_action = action;
 	m_parent = parent;
-	m_nameId = action != NULL ? hash_(action->name) : 0;
+	if (action)
+	{
+		m_name = std::make_shared<std::string>(action->name);
+		m_nameId = hash_(action->name);
+	}
 	m_trigger = parent.get() ? parent->m_trigger : 0;
 
 	m_type = Type::action;
@@ -59,17 +63,17 @@ std::shared_ptr<std::string> ActionNode::getTriggerNamePtr()
 	return m_trigger_name;
 }
 
-std::string ActionNode::getName() const
+std::shared_ptr<std::string> ActionNode::getName() const
 {
 	if (m_type == Type::trigger && m_trigger)
 	{
-		return m_trigger->name;
+		return m_trigger_name;
 	}
 	if (m_action)
 	{
-		return m_action->name;
+		return m_name;
 	}
-	return std::string();
+	return nullptr;
 }
 
 uint32_t ActionNode::getNameId() const
@@ -135,9 +139,16 @@ ActionNodePtr ActionNode::getBranchNode()
 
 		if (parent->m_action)
 		{
-			auto action_def = group.get_action_def(parent->getName());
-			if (action_def.is_group && !action_def.actions.empty() && parent->m_nameId != "IfThenElseMultiple"s_hash)
-				break;
+			auto def_ptr = group.get_action_def(*parent->getName());
+			if (def_ptr) 
+			{
+				auto group_ptr = def_ptr->get_group();
+				if (group_ptr && parent->m_nameId != "IfThenElseMultiple"s_hash)
+				{
+					break;
+				}
+			}
+	
 			for (size_t k = 0; k < parent->m_action->param_count; k++) 
 			{
 				Parameter* param = parent->m_action->parameters[k];
@@ -266,9 +277,11 @@ VarTablePtr ActionNode::getLastVarTable()
 		}
 		else
 		{
-			auto action_def = group.get_action_def(node->getName());
+			auto def_ptr = group.get_action_def(*node->getName());
 
-			if (node->m_action != m_action && (node->isRootNode() || (action_def.is_auto_param && action_def.is_group)))
+			if (node->m_action != m_action 
+				&&  (node->isRootNode() || (def_ptr && def_ptr->is_auto_param() && def_ptr->is_group()) )
+				)
 			{
 				retval = VarTablePtr(new std::map<std::string, std::string>);
 				node->m_hashVarTablePtr = retval;

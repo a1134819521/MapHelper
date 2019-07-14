@@ -38,7 +38,7 @@ public:
 	std::shared_ptr<std::string> getTriggerNamePtr();
 
 	//获取动作名
-	std::string getName() const;
+	std::shared_ptr<std::string> getName() const;
 
 	//获取动作名id 字符串哈希值
 	uint32_t getNameId() const;
@@ -101,6 +101,7 @@ protected:
 
 	std::shared_ptr<std::string> m_trigger_name;
 
+	std::shared_ptr<std::string> m_name;
 	Type m_type;
 
 	//用来记录多层次逆天计时器的局部变量 以便再上一层函数中申明

@@ -7,15 +7,89 @@
         "$name 按照动作位置取参数值",
         "$func 生成函数名 可以多个不同名字 $func1 $func2 ",
         "$loop0 转换第0个参数值为循环变量名  中文循环变量需要特殊处理",
+        "$retn 返回类型",
         "~0 取参数类型 0为参数索引",
-        "^0 取指定动作 0为第几行动作",
+        "^0 取指逆天类型值 0为参数索引 逆天类型 需要特殊处理 原值+11",
         "%0 解包动作组 0为动作组索引",
+
+        "Type 为动作类型",
+        "Group 是动作组 指多个动作 或多条件 多事件等",
+        "Action 是单条动作",
+        "Value 是值 参数中的值",
+      
+        "动作组的 Script 是指多个动作转换成脚本的格式",
+        "动作跟值的 Scripts是指单条动作在不同的父节点之下的不同转换格式",
+        "default 是指默认脚本格式",
         ""
     ],
 
-    "IfThenElseMultiple" : {
+    "注释1" : [
+        "========================单动作============================"
+    ],
 
-        "Actions" : [
+    "YDWESetAnyTypeLocalVariable" : {
+        "Type" : "Action",
+        "Scripts" : {
+            "default" : [
+                "call YDLocal2Set(^0,\"$1\",$2)"
+            ],
+
+            "trigger" : [
+                "call YDLocal1Set(^0,\"$1\",$2)"
+            ],
+
+            "YDWEExecuteTriggerMultiple" : [
+                "call YDLocal5Set(^0,\"$1\",$2)"
+            ],
+
+            "YDWETimerStartMultiple" : [
+                "call YDLocalSet($handle,^0,\"$1\",$2)"
+            ],
+
+            "YDWERegisterTriggerMultiple" : [
+                "call YDLocalSet($handle,^0,\"$1\",$2)"
+            ]
+        }
+    },
+
+    "注释2" : [
+        "========================参数值============================"
+    ],
+
+    "YDWEGetAnyTypeLocalVariable" : {
+        "Type" : "Value",
+        "AutoParam" : true,
+        "Scripts" : {
+            "default" : [
+                "YDLocal2Get(^0,\"$1\")"
+            ],
+
+            "trigger" : [
+                "YDLocal1Get(^0,\"$1\")"
+            ],
+
+            "YDWEExecuteTriggerMultiple" : [
+                "YDLocal5Get(^0,\"$1\")"
+            ],
+
+            "YDWETimerStartMultiple" : [
+                "YDLocalGet($handle,^0,\"$1\")"
+            ],
+
+            "YDWERegisterTriggerMultiple" : [
+                "YDLocalGet($handle,^0,\"$1\")"
+            ]
+        }
+    },
+
+    "注释3" : [
+        "========================动作组============================"
+    ],
+
+    "IfThenElseMultiple" : {
+        "Type" : "Group",
+
+        "Group" : [
             {
                 "Condition" : "If - 条件",
                 "Compare" : "and"
@@ -40,8 +114,9 @@
     },
 
     "AndMultiple" : {
+        "Type" : "Group",
 
-        "Actions" : [
+        "Group" : [
             {
                 "Condition" : "And - 所有条件成立",
                 "Compare" : "and"
@@ -54,8 +129,8 @@
     },
 
     "OrMultiple" : {
-
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             {
                 "Condition" : "Or - 任意条件成立",
                 "Compare" : "or"
@@ -68,7 +143,8 @@
     },
 
     "ForLoopAMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -87,7 +163,8 @@
     },
 
     "ForLoopBMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -106,7 +183,8 @@
     },
 
     "ForLoopVarMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -124,7 +202,8 @@
     },
 
     "ForForceMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -141,7 +220,8 @@
     },
 
     "ForGroupMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -158,7 +238,8 @@
     },
 
     "EnumItemsInRectBJMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -176,7 +257,8 @@
     
 
     "EnumDestructablesInRectAllMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -193,7 +275,8 @@
     },
 
     "EnumDestructablesInCircleBJMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作",
                 "IsChild" : true
@@ -212,9 +295,10 @@
     
 
     "YDWETimerStartMultiple" : {
+        "Type" : "Group",
         "AutoParam" : true,
 
-		"Actions" : [
+		"Group" : [
 			{ 
                 "Action" : "参数",
                 "IsChild" : false,
@@ -240,8 +324,9 @@
     },
 
     "YDWERegisterTriggerMultiple" : {
+        "Type" : "Group",
         "AutoParam" : true,
-        "Actions" : [
+        "Group" : [
             { 
                 "Event" : "事件",
                 "IsChild" : false,
@@ -273,7 +358,8 @@
     },
 
     "YDWEEnumUnitsInRangeMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作"
             }
@@ -296,7 +382,8 @@
     },
 
     "YDWEForLoopLocVarMultiple" : {
-        "Actions" : [ 
+        "Type" : "Group",
+        "Group" : [ 
             {
                 "Action" : "循环"
             }
@@ -316,7 +403,8 @@
     
     
     "YDWERegionMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { 
                 "Action" : "动作" 
             }
@@ -331,8 +419,9 @@
     },
 
    "YDWEExecuteTriggerMultiple" : {
+        "Type" : "Group",
         "AutoParam" : true,
-        "Actions" : [ 
+        "Group" : [ 
             {
                 "Action" : "动作",
                 "AutoParam" : true,
@@ -351,7 +440,8 @@
     },
   
   "DzTriggerRegisterMouseEventMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -369,7 +459,8 @@
     },
 
     "DzTriggerRegisterKeyEventMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -386,7 +477,8 @@
     },
 
     "DzTriggerRegisterMouseMoveEventMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -403,7 +495,8 @@
     },
     
     "DzTriggerRegisterMouseWheelEventMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -420,7 +513,8 @@
     },
 
     "DzTriggerRegisterWindowResizeEventMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -437,7 +531,8 @@
     },
     
     "DzFrameSetUpdateCallbackMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],
@@ -454,7 +549,8 @@
     },
  
     "DzFrameSetScriptMultiple" : {
-        "Actions" : [
+        "Type" : "Group",
+        "Group" : [
             { "Action" : "参数" },
             { "Action" : "动作" }
         ],

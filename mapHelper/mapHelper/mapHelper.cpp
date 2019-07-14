@@ -116,27 +116,33 @@ static void __declspec(naked) insertConvertTrigger()
 static int __fastcall fakeGetChildCount(Action* action)
 {
 	auto& editor = get_trigger_editor();
-	auto action_def = editor.group.get_action_def(action->name);
+	const auto def_ptr = editor.group.get_action_def(action->name);
 
-	if (action_def.is_group && !action_def.actions.empty())
-	{
-		return action_def.actions.size();
+	if (def_ptr) {
+		auto group_ptr = def_ptr->get_group();
+		if (group_ptr)
+		{
+			return (int)group_ptr->size();
+		}
 	}
 	return this_call<int>(real::GetChildCount, action);
 }
 
 //修改特定的UI名字
-static int __fastcall fakeGetString(Action* action, uint32_t edx,uint32_t index, char* buffer, int len)
+static int __fastcall fakeGetString(Action* action, uint32_t edx,int index, char* buffer, int len)
 {
 
 	auto& editor = get_trigger_editor();
-	auto action_def = editor.group.get_action_def(action->name);
+	auto def_ptr = editor.group.get_action_def(action->name);
 
-	if (action_def.is_group && !action_def.actions.empty())
-	{
-		index = min(index, action_def.actions.size() - 1);
-		strncpy(buffer, action_def.actions[index].name.c_str(), len);
-		return 1;
+	if (def_ptr) {
+		auto group_ptr = def_ptr->get_group();
+		if (group_ptr) {
+			index = min(index, (int)group_ptr->size() - 1);
+			auto& info = (*group_ptr)[index];
+			strncpy(buffer, info.name.c_str(), len);
+			return 1;
+		}
 	}
 	return fast_call<int>(real::GetString, action, edx, index, buffer, len);
 }
@@ -144,14 +150,16 @@ static int __fastcall fakeGetString(Action* action, uint32_t edx,uint32_t index,
 //返回动作组的动作类型
 static int __fastcall fakeGetActionType(Action* action, uint32_t edx, int index)
 {
-
 	auto& editor = get_trigger_editor();
-	auto action_def = editor.group.get_action_def(action->name);
+	auto def_ptr = editor.group.get_action_def(action->name);
 
-	if (action_def.is_group && !action_def.actions.empty())
-	{
-		index = (std::min)(index, (int)action_def.actions.size() - 1);
-		return action_def.actions[index].type_id;
+	if (def_ptr) {
+		auto group_ptr = def_ptr->get_group();
+		if (group_ptr) {
+			index = min(index, (int)group_ptr->size() - 1);
+			auto& info = (*group_ptr)[index];
+			return info.type_id;
+		}
 	}
 	return fast_call<int>(real::GetActionType, action, edx, index);
 }
