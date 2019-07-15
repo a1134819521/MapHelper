@@ -59,7 +59,7 @@
     "YDWEGetAnyTypeLocalVariable" : {
         "Type" : "Value",
         "AutoParam" : [
-            "{save(YDWESetAnyTypeLocalVariable,get_ydtype(0),get(1),load_prev(YDWEGetAnyTypeLocalVariable,get_ydtype(0),get(1))}"
+            "{save(YDWESetAnyTypeLocalVariable,get_ydtype(0),get(1),load(YDWEGetAnyTypeLocalVariable,get_ydtype(0),get(1))}"
         ],
         "Scripts" : {
             "default" : [

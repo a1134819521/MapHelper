@@ -187,27 +187,6 @@ namespace word {
 			word::Parser parser(script.c_str());
 			parser.parse(*m_script);
 
-			//std::cout << "行数" << m_script->lines.size() << "\n";
-			//for (const auto& line : m_script->lines) {
-			//	for (const auto& value : line.values) {
-			//		if (value.type == ValueInfo::CODE) {
-			//			std::cout << *value.code;
-			//		} else if (value.call){
-			//			std::cout << value.call->name;
-			//			for (const auto& param : value.call->params) {
-			//				std::cout << param.type << "  :  ";
-			//				if (param.type == Param::TYPE::STRING) {
-			//					std::cout << param.string;
-			//				} else if (param.type == Param::UINT) {
-			//					std::cout << param.uint;
-			//				}
-			//				std::cout << "  \n";
-			//			}
-			//		}
-			//	}
-			//	std::cout << "\n";
-			//}
-
 			return true;
 		}
 
@@ -229,9 +208,31 @@ namespace word {
 				return false;
 			}
 
-			Json jbool = json["AutoParam"];
-			if (jbool.is_bool()) {
-				m_auto_param = jbool.bool_value();
+			Json jauto = json["AutoParam"];
+			if (jauto.is_array()) {
+
+				std::string script;
+				auto& array = jauto.array_items();
+				if (array.empty()) {
+					std::cout << "AutoParam是空数组 解析失败\n";
+					return false;
+				}
+				for (const auto& line : array) {
+					if (line.is_string()) {
+						script += line.string_value() + "\n";
+					}
+				}
+				if (script.empty()) {
+					std::cout << "AutoParam是不是字符串数组 解析失败\n";
+					return false;
+				}
+				script.pop_back();
+
+				m_auto_param = true;
+
+				m_auto_param_script = std::make_shared<Handler>();
+				word::Parser parser(script.c_str());
+				parser.parse(*m_auto_param_script);
 			}
 
 			return true;
@@ -325,6 +326,10 @@ namespace word {
 			return it->second;
 		}
 
+		HandlerPtr get_auto_script() {
+			return m_auto_param_script;
+		}
+
 		
 	private:
 		//动作组
@@ -335,6 +340,9 @@ namespace word {
 
 		//单动作以及值 根据不同的 父节点 生成不同的脚本
 		std::map<std::string, HandlerPtr> m_scripts;
+
+		//值的自动传参的模板
+		HandlerPtr m_auto_param_script;
 
 		TYPE m_type;
 		bool m_init;
