@@ -2,15 +2,14 @@
     "注释说明" : [
         "关于script中使用的符号说明",
         "# 前缀为新函数",
-        "@ 为自身函数申请局部变量 申明不带值",
-        "$0 取参数值 0为参数索引",
-        "$name 按照动作位置取参数值",
-        "$func 生成函数名 可以多个不同名字 $func1 $func2 ",
-        "$loop0 转换第0个参数值为循环变量名  中文循环变量需要特殊处理",
-        "$retn 返回类型",
-        "~0 取参数类型 0为参数索引",
-        "^0 取指逆天类型值 0为参数索引 逆天类型 需要特殊处理 原值+11",
-        "%0 解包动作组 0为动作组索引",
+        "{get(0)} 取参数值 0为参数索引",
+        "{get_value(name)} 按照动作位置取参数值",
+        "{func_name(1)} 生成函数名 可以多个不同名字 {func_name(1)} {func_name(2)} ",
+        "{loop_name(0)} 转换第0个参数值为循环变量名  中文循环变量需要特殊处理",
+        "{get_return_type()} 返回类型",
+        "{get_type(0)} 取参数类型 0为参数索引",
+        "{get_ydtype(0)} 取指逆天类型值 0为参数索引 逆天类型 需要特殊处理 原值+11",
+        "{get_group(0)} 解包动作组 0为动作组索引",
 
         "Type 为动作类型",
         "Group 是动作组 指多个动作 或多条件 多事件等",
@@ -29,25 +28,26 @@
 
     "YDWESetAnyTypeLocalVariable" : {
         "Type" : "Action",
+        
         "Scripts" : {
             "default" : [
-                "call YDLocal2Set(^0,\"$1\",$2)"
+                "call YDLocal2Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
             ],
 
             "trigger" : [
-                "call YDLocal1Set(^0,\"$1\",$2)"
+                "call YDLocal1Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
             ],
 
             "YDWEExecuteTriggerMultiple" : [
-                "call YDLocal5Set(^0,\"$1\",$2)"
+                "call YDLocal5Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
             ],
 
             "YDWETimerStartMultiple" : [
-                "call YDLocalSet($handle,^0,\"$1\",$2)"
+                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\",{get(2)})"
             ],
 
             "YDWERegisterTriggerMultiple" : [
-                "call YDLocalSet($handle,^0,\"$1\",$2)"
+                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\",{get(2)})"
             ]
         }
     },
@@ -61,23 +61,23 @@
         "AutoParam" : true,
         "Scripts" : {
             "default" : [
-                "YDLocal2Get(^0,\"$1\")"
+                "YDLocal2Get({get_ydtype(0)},\"{get(1)}\")"
             ],
 
             "trigger" : [
-                "YDLocal1Get(^0,\"$1\")"
+                "YDLocal1Get({get_ydtype(0)},\"{get(1)}\")"
             ],
 
             "YDWEExecuteTriggerMultiple" : [
-                "YDLocal5Get(^0,\"$1\")"
+                "YDLocal5Get({get_ydtype(0)},\"{get(1)}\")"
             ],
 
             "YDWETimerStartMultiple" : [
-                "YDLocalGet($handle,^0,\"$1\")"
+                "YDLocalGet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\")"
             ],
 
             "YDWERegisterTriggerMultiple" : [
-                "YDLocalGet($handle,^0,\"$1\")"
+                "YDLocalGet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\")"
             ]
         }
     },
@@ -105,10 +105,10 @@
         ],
 
         "Script" : [
-            "if (%0) then",
-            "%1",
+            "if ({get_group(0)}) then",
+            "{get_group(1)}",
             "else",
-            "%2",
+            "{get_group(2)}",
             "endif"
         ]
     },
@@ -124,7 +124,7 @@
         ],
 
         "Script" : [
-            "(%0)"
+            "({get_group(0)})"
         ]
     },
 
@@ -138,7 +138,7 @@
         ],
 
         "Script" : [
-            "(%0)"
+            "({get_group(0)})"
         ]
     },
 
@@ -152,11 +152,11 @@
         ],
 
         "Script" : [
-            "set bj_forLoopAIndex = $0",
-            "set bj_forLoopAIndexEnd = $1",
+            "set bj_forLoopAIndex = {get(0)}",
+            "set bj_forLoopAIndexEnd = {get(1)}",
             "loop",
             "    exitwhen bj_forLoopAIndex > bj_forLoopAIndexEnd",
-            "%0",
+            "{get_group(0)}",
             "    set bj_forLoopAIndex = bj_forLoopAIndex + 1",
             "endloop"
         ]
@@ -172,11 +172,11 @@
         ],
 
         "Script" : [
-            "set bj_forLoopBIndex = $0",
-            "set bj_forLoopBIndexEnd = $1",
+            "set bj_forLoopBIndex = {get(0)}",
+            "set bj_forLoopBIndexEnd = {get(1)}",
             "loop",
             "    exitwhen bj_forLoopBIndex > bj_forLoopBIndexEnd",
-            "%0",
+            "{get_group(0)}",
             "    set bj_forLoopBIndex = bj_forLoopBIndex + 1",
             "endloop"
         ]
@@ -192,11 +192,11 @@
         ],
 
         "Script" : [
-            "set $0 = $1",
+            "set {get(0)} = {get(1)}",
             "loop",
-            "    exitwhen $0 > $2",
-            "%0",
-            "    set $0 = $0 + 1",
+            "    exitwhen {get(0)} > {get(2)}",
+            "{get_group(0)}",
+            "    set {get(0)} = {get(0)} + 1",
             "endloop"
         ]
     },
@@ -211,11 +211,11 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%0",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(0)}",
             "#endfunction",
 
-            "call ForForce($0,function $func1)"
+            "call ForForce({get(0)},function {func_name(1)})"
         ]
     },
 
@@ -229,11 +229,11 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%0",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(0)}",
             "#endfunction",
 
-            "call ForGroup($0,function $func1)"
+            "call ForGroup({get(0)},function {func_name(1)})"
         ]
     },
 
@@ -247,11 +247,11 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%0",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(0)}",
             "#endfunction",
 
-            "call EnumItemsInRectBJ($0,function $func1)"
+            "call EnumItemsInRectBJ({get(0)},function {func_name(1)})"
         ]
     },
     
@@ -266,11 +266,11 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%0",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(0)}",
             "#endfunction",
 
-            "call EnumDestructablesInRectAll($0,function $func1)"
+            "call EnumDestructablesInRectAll({get(0)},function {func_name(1)})"
         ]
     },
 
@@ -284,11 +284,11 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%0",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(0)}",
             "#endfunction",
 
-            "call EnumDestructablesInCircleBJ($0,$1,function $func1)"
+            "call EnumDestructablesInCircleBJ({get(0)},{get(1)},function {func_name(1)})"
         ]
     },
     
@@ -312,14 +312,14 @@
         ],
         
 		"Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%1",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(1)}",
             "#endfunction",
 
-            "@local timer ydl_timer",
-            "set ydl_timer = $0",
-            "%0",
-            "call TimerStart(ydl_timer,$1,$2,function $func1)"
+            "{add_local(ydl_timer,timer)}",
+            "set ydl_timer = {get(0)}",
+            "{get_group(0)}",
+            "call TimerStart(ydl_timer,{get(1)},{get(2)},function {func_name(1)})"
         ]
     },
 
@@ -345,15 +345,15 @@
         ],
 
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "@local trigger ydl_trigger",
-            "set $handle = $0",
-            "%0",
-            "%1",
-            "call TriggerAddCondition($handle,Condition(function $func1))"
+            "{add_local(ydl_trigger,trigger)}",
+            "set {get_value(handle)} = {get(0)}",
+            "{get_group(0)}",
+            "{get_group(1)}",
+            "call TriggerAddCondition({get_value(handle)},Condition(function {func_name(1)}))"
         ]
     },
 
@@ -361,21 +361,22 @@
         "Type" : "Group",
         "Group" : [
             { 
-                "Action" : "动作"
+                "Action" : "动作",
+                "IsChild" : true
             }
         ],
 
         "Script" : [
-            "@local group ydl_group",
-            "@local unit ydl_unit",
+            "{add_local(ydl_group,group)}",
+            "{add_local(ydl_unit,unit)}",
 
             "set ydl_group = CreateGroup()",
-            "call GroupEnumUnitsInRange(ydl_group,$0,$1,$2,null)",
+            "call GroupEnumUnitsInRange(ydl_group,{get(0)},{get(1)},{get(2)},null)",
             "loop",
             "    set ydl_unit = FirstOfGroup(ydl_group)",
             "    exitwhen ydl_unit == null",
             "    call GroupRemoveUnit(ydl_group, ydl_unit)",
-            "%0",
+            "{get_group(0)}",
             "endloop",
             "call DestroyGroup(ydl_group)"
         ]
@@ -385,17 +386,18 @@
         "Type" : "Group",
         "Group" : [ 
             {
-                "Action" : "循环"
+                "Action" : "循环",
+                "IsChild" : true
             }
         ],
 
         "Script" : [
-            "@local integer $loop0",
+            "{add_local(loop_name(0),integer)}",
 
-            "set $loop0 = $1",
+            "set {loop_name(0)} = {get(1)}",
             "loop",
-            "    exitwhen $loop0 > $2",
-            "%0",
+            "    exitwhen {loop_name(0)} > {get(2)}",
+            "{get_group(0)}",
             "endloop"
         ]
     },
@@ -412,8 +414,8 @@
 
         "Script" : [
             "// --------------------",
-            "//$0",
-            "%0",
+            "//{get(0)}",
+            "{get_group(0)}",
             "// --------------------"
         ]
     },
@@ -430,12 +432,12 @@
         ],
 
         "Script" : [
-            "@local trigger ydl_trigger",
+            "{add_local(ydl_trigger,trigger)}",
 
-            "set ydl_trigger = $0",
+            "set ydl_trigger = {get(0)}",
             "YDLocalExecuteTrigger(ydl_trigger)",
-            "%0",
-            "call YDTriggerExecuteTrigger(ydl_trigger,$1)"
+            "{get_group(0)}",
+            "call YDTriggerExecuteTrigger(ydl_trigger,{get(1)})"
         ]
     },
   
@@ -447,12 +449,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzTriggerRegisterMouseEventByCode(null,$1,$2,false,function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzTriggerRegisterMouseEventByCode(null,{get(1)},{get(2)},false,function {func_name(1)})",
             "endif"
         ]
         
@@ -466,12 +468,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzTriggerRegisterKeyEventByCode(null,$1,$2,false,function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzTriggerRegisterKeyEventByCode(null,{get(1)},{get(2)},false,function {func_name(1)})",
             "endif"
         ]
     },
@@ -484,12 +486,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzTriggerRegisterMouseMoveEventByCode(null,false,function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzTriggerRegisterMouseMoveEventByCode(null,false,function {func_name(1)})",
             "endif"
         ]
     },
@@ -502,12 +504,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzTriggerRegisterMouseWheelEventByCode(null,false,function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzTriggerRegisterMouseWheelEventByCode(null,false,function {func_name(1)})",
             "endif"
         ]
     },
@@ -520,12 +522,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzTriggerRegisterWindowResizeEventByCode(null,false,function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzTriggerRegisterWindowResizeEventByCode(null,false,function {func_name(1)})",
             "endif"
         ]
     },
@@ -538,12 +540,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzFrameSetUpdateCallbackByCode(function $func1)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzFrameSetUpdateCallbackByCode(function {func_name(1)})",
             "endif"
         ]
     },
@@ -556,12 +558,12 @@
         ],
         
         "Script" : [
-            "#function $func1 takes nothing returns nothing",
-            "#%2",
+            "#function {func_name(1)} takes nothing returns nothing",
+            "#{get_group(2)}",
             "#endfunction",
 
-            "if GetLocalPlayer() == $0 then",
-            "    call DzFrameSetScriptByCode($2,$1,function $func1,false)",
+            "if GetLocalPlayer() == {get(0)} then",
+            "    call DzFrameSetScriptByCode({get(2)},{get(1)},function {func_name(1)},false)",
             "endif"
         ]
     }

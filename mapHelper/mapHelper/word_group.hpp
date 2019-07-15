@@ -187,6 +187,27 @@ namespace word {
 			word::Parser parser(script.c_str());
 			parser.parse(*m_script);
 
+			//std::cout << "ÐÐÊý" << m_script->lines.size() << "\n";
+			//for (const auto& line : m_script->lines) {
+			//	for (const auto& value : line.values) {
+			//		if (value.type == ValueInfo::CODE) {
+			//			std::cout << *value.code;
+			//		} else if (value.call){
+			//			std::cout << value.call->name;
+			//			for (const auto& param : value.call->params) {
+			//				std::cout << param.type << "  :  ";
+			//				if (param.type == Param::TYPE::STRING) {
+			//					std::cout << param.string;
+			//				} else if (param.type == Param::UINT) {
+			//					std::cout << param.uint;
+			//				}
+			//				std::cout << "  \n";
+			//			}
+			//		}
+			//	}
+			//	std::cout << "\n";
+			//}
+
 			return true;
 		}
 
@@ -242,10 +263,12 @@ namespace word {
 
 				code.pop_back();
 				
-
 				HandlerPtr handler = std::make_shared<Handler>();
 				Parser parser(code.c_str());
-				parser.parse(*handler);
+				
+				if (!parser.parse(*handler)) {
+					return false;
+				}
 
 				m_scripts[name] = handler;
 			}

@@ -12,16 +12,17 @@
 #include "word_handler.hpp"
 
 namespace word {
-	enum cflag : char {
+	enum FLAG : char {
 		//value
-		args = '$',
-		args_type = '~',
-		args_type2 = '^',
-		group = '%',
+		PACK_L = '{',
+		PACK_R = '}',
+		PL = '(',
+		PR = ')',
+		SPLIT = ',',
+		STR = '"',
 
 		//line
-		local = '@',
-		function = '#',
+		FUNCTION = '#',
 	};
 
 	enum class ctype : uint8_t {
@@ -59,12 +60,13 @@ namespace word {
 	inline bool is_flag(const char* c) {
 		switch (*c)
 		{
-		case cflag::args:
-		case cflag::args_type:
-		case cflag::args_type2:
-		case cflag::group:
-		case cflag::function:
-		case cflag::local:
+		case FLAG::PACK_L:
+		case FLAG::PACK_R:
+		case FLAG::PL:
+		case FLAG::PR:
+		case FLAG::SPLIT:
+		case FLAG::STR:
+		case FLAG::FUNCTION:
 			return true;
 		}
 		return false;
@@ -110,6 +112,7 @@ namespace word {
 	}
 
 	struct Parser {
+		bool is_pack = false;
 		const char* z;
 
 		Parser(const char* input) : z(input) {
@@ -124,7 +127,12 @@ namespace word {
 			}
 		}
 
-
+		//不收集空格跟换行信息
+		void parse_ignore_whitespace() {
+			while (equal(z, " \t") || equal(z, "\n\r")) {
+				z++;
+			}
+		}
 
 		void parse_whitespace(Handler& h) {
 			std::string space;
@@ -149,64 +157,72 @@ namespace word {
 			}
 		}
 
-		bool parse_args(Handler& h) {
-			expect(z, cflag::args);
-			consume(z, cflag::args);
+		bool parse_call(Handler& h,CallPtr& call) {
+			parse_ignore_whitespace();
+			std::string name;
 			const char* p = z;
-			int index;
-			if (parse_index(h,index)) {
-				h.accept_args(index);
-				return true;
+			if (!parse_name(h, name)) {
+				return false;
+			}
+			parse_ignore_whitespace();
+			if (!equal(z, FLAG::PL)) {
+				z = p;
+				return false;
+			}
+			if (call) {
+				call->params.clear();
+			} else {
+				call = std::make_shared<struct Call>();
+			}
+
+			if (!parse_args(h, call->params)) {
+				std::cout << name << "读取参数失败\n";
+				return false;
+			}
+			call->name = name;
+
+			return true;
+		}
+		bool parse_args(Handler& h, std::vector<Param>& params) {
+			if (!consume(z, FLAG::PL)) {
+				return false;
 			}
 			std::string name;
-			z = p;
-			if (parse_name(h,name)) {
-				index = -1;
-				parse_index(h, index);
-				h.accept_param(name,index);
-				return true;
+			while (!equal(z, '\0')) {
+				parse_ignore_whitespace();
+				Param param;
+				if (parse_uint(h, param.uint)) {
+					param.type = Param::TYPE::UINT;
+					params.push_back(param);
+				} else if (parse_call(h,param.call)) {
+					param.type = Param::TYPE::CALL;
+					params.push_back(param);
+				} else if (parse_name(h,name)) {
+					param.type = Param::TYPE::STRING;
+					param.string = name;
+					params.push_back(param);
+				} else if (consume(z,FLAG::SPLIT)) {
+
+				} else if (consume(z, FLAG::PR)) {
+					
+				} else if (equal(z,FLAG::PACK_R)) {
+					break;
+				}
 			}
-			return false;
+			return true;
 		}
 
-		bool parse_args_type(Handler& h) {
-			expect(z, cflag::args_type);
-			consume(z, cflag::args_type);
-			int index;
-			if (parse_index(h,index)) {
-				h.accept_args_type(index);
-				return true;
-			}
-			return false;
-		}
-
-
-
-		bool parse_args_type2(Handler& h) {
-			expect(z, cflag::args_type2);
-			consume(z, cflag::args_type2);
-			int index;
-			if (parse_index(h,index)) {
-				h.accept_args_type2(index);
-				return true;
-			}
-			return false;
-		}
-
-		bool parse_group(Handler& h) {
-			expect(z, cflag::group);
-			consume(z, cflag::group);
-			int index;
-			if (parse_index(h,index)) {
-				h.accept_group(index);
-				return true;
-			}
-			return false;
-		}
 
 		bool parse_code(Handler& h) {
 			std::string code;
-			while (!equal(z, '\0') && !is_flag(z) && !equal(z, "\r\n")) {
+			while (!equal(z, '\0') && !equal(z, "\r\n")) {
+				if (!is_pack) {
+					if (equal(z, FLAG::PACK_L)) {
+						break;
+					}
+				} else if(is_flag(z)) {
+					break;
+				}
 				code += *z;
 				z++;
 			}
@@ -218,9 +234,11 @@ namespace word {
 		}
 
 		bool parse_name(Handler& h,std::string& name) {
-			parse_whitespace(h);
+			if (!is_pack) {
+				parse_whitespace(h);
+			}
 			name.clear();
-			while (!equal(z, '\0') && is_alpha(*z)) {
+			while (!equal(z, '\0') && (is_alnum(*z) || equal(z, '_'))) {
 				name += *z;
 				z++;
 			}
@@ -230,60 +248,80 @@ namespace word {
 			return false;
 		}
 
+		bool parse_string(Handler& h, std::string& result) {
+			if (!consume(z, FLAG::STR)) {
+				return false;
+			}
+			result.clear();
 
-		bool parse_index(Handler& h,int& index) {
-			parse_whitespace(h);
-
-			std::string integer;
-
-			while (!equal(z, '\0') && is_digit(*z)) {
-				integer += *z;
+			while (!equal(z, '\0') && !equal(z, FLAG::STR)) {
+				result += *z;
 				z++;
 			}
-			if (!integer.empty()) {
-				index = std::atoi(integer.c_str());
+			if (!consume(z, FLAG::STR)) {
+				std::cout << "缺少对称的双引号\n";
+				return false;
+			}
+			return true;
+		}
+		bool parse_uint(Handler& h,uint32_t& result) {
+			std::string number;
+			const char* p = z;
+			while (!equal(z, '\0') && is_digit(*z)) {
+				number += *z;
+				z++;
+			}
+			if (!number.empty()) {
+				result = std::atoi(number.c_str());
 				return true;
 			}
+			z = p;
 			return false;
 		}
-
-		
 
 		bool parse_function(Handler& h) {
-			expect(z, cflag::function);
-			consume(z, cflag::function);
-			if (parse_action(h)) {
-				h.accept_line_type(LineInfo::Type::function);
-				return true;
+			if (!consume(z, FLAG::FUNCTION)) {
+				return false;
 			}
-			return false;
-		}
-
-		bool parse_local(Handler& h) {
-			expect(z, cflag::local);
-			consume(z, cflag::local);
-			if (parse_action(h)) {
-				h.accept_line_type(LineInfo::Type::local);
-				return true;
+			if (!parse_action(h)) {
+				std::cout << "读取动作失败\n";
+				return false;
 			}
-			return false;
+			h.accept_line_type(LineInfo::TYPE::FUNCTION);
+			return true;
 		}
 
 		bool parse_action(Handler& h) {
-
-			while (!equal(z, '\0') && !equal(z,"\r\n")) {
-				switch (*z)
-				{
-				case cflag::args: parse_args(h); break;
-				case cflag::args_type: parse_args_type(h); break;
-				case cflag::args_type2: parse_args_type2(h); break;
-				case cflag::group: parse_group(h); break;
-				default:
-					parse_code(h); 
-					break;
+			while (!equal(z, '\0') && !equal(z, "\r\n")) {
+				if (!parse_code(h)) {
+					if (equal(z, FLAG::PACK_L)) {
+						if (!parse_package(h)) {
+							std::cout << "读取包失败 " << "\n";
+							return false;
+						}
+					}
 				}
 			}
-			h.accept_line_type(LineInfo::Type::action);
+			h.accept_line_type(LineInfo::TYPE::ACTION);
+			return true;
+		}
+
+		bool parse_package(Handler& h) {
+			if (!consume(z, FLAG::PACK_L)) {
+				return false;
+			}
+			is_pack = true;
+			CallPtr call = std::make_shared<struct Call>();
+			if (!parse_call(h, call)) {
+				std::cout << "读取call失败\n";
+				return false;
+			}
+			if (!consume(z, FLAG::PACK_R)) {
+				std::cout << "缺少 } 结束符\n";
+				return false;
+			}
+			is_pack = false;
+			h.accept_call(call);
 			return true;
 		}
 		
@@ -291,13 +329,9 @@ namespace word {
 		bool parse_exp(Handler& h) {
 			h.accept_newline();
 			parse_whitespace(h);
-			switch (*z) 
-			{
-			case cflag::function:
+			if (equal(z,FLAG::FUNCTION)) {
 				return parse_function(h);
-			case cflag::local:
-				return parse_local(h);
-			default:
+			} else {
 				return parse_action(h);
 			}
 			return true;
@@ -306,6 +340,7 @@ namespace word {
 		bool parse(Handler& h) {
 			while (!equal(z, '\0')) {
 				if (!parse_exp(h)) {
+					
 					return false;
 				}
 				parse_whitespace(h);

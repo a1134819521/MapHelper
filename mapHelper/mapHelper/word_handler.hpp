@@ -5,28 +5,42 @@
 #include <map>
 
 namespace word {
+	
+	typedef std::shared_ptr<struct Call> CallPtr;
+
+	struct Param {
+		enum TYPE {
+			UINT,
+			STRING,
+			CALL,
+		};
+		TYPE type;
+		uint32_t uint;
+		std::string string;
+
+		CallPtr call;
+	};
+	struct Call {
+		std::string name;
+		std::vector<Param> params;
+	};
 
 	struct ValueInfo {
-		enum Type {
-			args,
-			args_type,
-			args_type2,
-			param,
-			group,
-			code
+		enum TYPE {
+			CALL,
+			CODE
 		};
-		Type type;
-		std::string data;
-		int args_index = -1;
+		TYPE type;
+		std::shared_ptr<std::string> code;
+		CallPtr call;
 	};
 
 	struct LineInfo {
-		enum Type {
-			function,
-			local,
-			action
+		enum TYPE {
+			FUNCTION,
+			ACTION
 		};
-		Type type; 
+		TYPE type; 
 		std::vector<ValueInfo> values;
 	};
 
@@ -39,10 +53,10 @@ namespace word {
 			if (++pos == lines.size()) {
 				lines.resize(lines.size() + 1);
 			}
-			lines[pos].type = LineInfo::Type::action;
+			lines[pos].type = LineInfo::TYPE::ACTION;
 		}
 
-		void accept_line_type(LineInfo::Type type) {
+		void accept_line_type(LineInfo::TYPE type) {
 			lines[pos].type = type;
 		}
 
@@ -50,36 +64,20 @@ namespace word {
 			lines[pos].values.push_back(info);
 		}
 
-		void accept_value(ValueInfo::Type type, int index) {
-			accept_value({ type,std::string(),index });
-		}
-
-		void accept_value(ValueInfo::Type type, const std::string& key) {
-			accept_value({ type,key,-1 });
-		}
-
-		void accept_args(int index) {
-			accept_value(ValueInfo::Type::args, index);
-		}
-
-		void accept_args_type(int index) {
-			accept_value(ValueInfo::Type::args_type, index);
-		}
-
-		void accept_param(const std::string& key,int index) {
-			accept_value({ ValueInfo::Type::param,key,index });
-		}
-		
-		void accept_args_type2(int index) {
-			accept_value(ValueInfo::Type::args_type2, index);
-		}
-
-		void accept_group(int index) {
-			accept_value(ValueInfo::Type::group, index);
-		}
 
 		void accept_code(const std::string& str) {
-			accept_value(ValueInfo::Type::code, str);
+			ValueInfo value;
+			value.type = ValueInfo::CODE;
+			value.code = std::make_shared<std::string>(str);
+			accept_value(value);
 		}
+
+		void accept_call(CallPtr call) {
+			ValueInfo value;
+			value.type = ValueInfo::CALL;
+			value.call = call;
+			accept_value(value);
+		}
+
 	};
 }

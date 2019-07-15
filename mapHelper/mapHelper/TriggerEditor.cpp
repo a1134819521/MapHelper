@@ -59,7 +59,7 @@ void TriggerEditor::loadTriggerConfig(TriggerConfigData* data)
 	fs::path current = buffer;
 	current.remove_filename();
 	
-	current = "D:\\MapHelper_git";
+	current = "E:\\MapHelper_git";
 
 	if (!group.load(current / "group.json")) {
 		std::cout << "json读取失败\n";
@@ -1577,9 +1577,9 @@ endfunction
 }
 
 
-std::string TriggerEditor::convertTrigger(Trigger* trigger) 
+std::string TriggerEditor::convertTrigger(Trigger* trigger)
 {
-	
+
 
 	ActionNodePtr root(new ActionNode(trigger));
 
@@ -1615,96 +1615,96 @@ std::string TriggerEditor::convertTrigger(Trigger* trigger)
 		m_ydweTrigger->onRegisterTrigger(events, *root->getName(), trigger_variable_name);
 	}
 
-std::vector<ActionNodePtr> list;
-root->getChildNodeList(list);
+	std::vector<ActionNodePtr> list;
+	root->getChildNodeList(list);
 
-for (auto& node : list)
-{
-	Action* action = node->getAction();
-	std::string name = action->name;
-
-	switch (node->getActionType())
+	for (auto& node : list)
 	{
-	case Action::Type::event:
-		if (m_ydweTrigger->isEnable())
+		Action* action = node->getAction();
+		std::string name = action->name;
+
+		switch (node->getActionType())
 		{
-			//返回false 跳过注册事件
-			if (!m_ydweTrigger->onRegisterEvent(events, node))
+		case Action::Type::event:
+			if (m_ydweTrigger->isEnable())
+			{
+				//返回false 跳过注册事件
+				if (!m_ydweTrigger->onRegisterEvent(events, node))
+					continue;
+
+			}
+			if (node->getNameId() == "MapInitializationEvent"s_hash)
+			{
+				m_initTriggerTable[trigger] = true;
 				continue;
+			}
+			events += "\tcall " + getBaseName(node) + "(" + trigger_variable_name;
 
+			for (size_t k = 0; k < action->param_count; k++)
+			{
+				Parameter* param = action->parameters[k];
+
+
+				auto type{ std::string(param->type_name) };
+
+				events += ", ";
+				events += convertParameter(param, node, pre_actions);
+			}
+			events += ")\n";
+			if (m_ydweTrigger->isEnable())
+			{
+				m_ydweTrigger->onRegisterEvent2(events, node);
+			}
+
+			break;
+		case Action::Type::condition:
+			conditions += "\tif (not (" + convertAction(node, pre_actions, true) + ")) then\n";
+			conditions += "\treturn false\n";
+			conditions += "\tendif\n";
+			break;
+		case Action::Type::action:
+			space_stack = 1;
+			action_code += spaces[space_stack];
+
+			action_code += convertAction(node, pre_actions, false);
+			if (action_code[action_code.size() - 1] != '\n')
+			{
+				action_code += "\n";
+			}
+			break;
+		default:
+			break;
 		}
-		if (node->getNameId() == "MapInitializationEvent"s_hash)
-		{
-			m_initTriggerTable[trigger] = true;
-			continue;
-		}
-		events += "\tcall " + getBaseName(node) + "(" + trigger_variable_name;
-
-		for (size_t k = 0; k < action->param_count; k++)
-		{
-			Parameter* param = action->parameters[k];
-
-
-			auto type{ std::string(param->type_name) };
-
-			events += ", ";
-			events += convertParameter(param, node, pre_actions);
-		}
-		events += ")\n";
-		if (m_ydweTrigger->isEnable())
-		{
-			m_ydweTrigger->onRegisterEvent2(events, node);
-		}
-
-		break;
-	case Action::Type::condition:
-		conditions += "\tif (not (" + convertAction(node, pre_actions, true) + ")) then\n";
-		conditions += "\treturn false\n";
-		conditions += "\tendif\n";
-		break;
-	case Action::Type::action:
-		space_stack = 1;
-		action_code += spaces[space_stack];
-
-		action_code += convertAction(node, pre_actions, false);
-		if (action_code[action_code.size() - 1] != '\n')
-		{
-			action_code += "\n";
-		}
-		break;
-	default:
-		break;
 	}
-}
 
-if (m_ydweTrigger->isEnable())
-{
-	actions += action_code;
-	m_ydweTrigger->onActionsToFuncEnd(actions, root);
-}
-else
-{
-	actions += action_code;
-}
-
-
-actions += "endfunction\n\n";
-
-if (!conditions.empty()) {
-	conditions = "function Trig_" + trigger_name + "_Conditions takes nothing returns boolean\n" + conditions;
-	conditions += "\treturn true\n";
-	conditions += "endfunction\n\n";
-
-	events += "\tcall TriggerAddCondition(" + trigger_variable_name + ", Condition(function Trig_" + trigger_name + "_Conditions))\n";
-}
-
-events += "\tcall TriggerAddAction(" + trigger_variable_name + ", function " + trigger_action_name + ")\n";
-events += "endfunction\n\n";
-
-std::string logo = u8"//自定义jass生成器 作者： 阿七  \n//有bug到魔兽地图编辑器吧 @w4454962 \n";
+	if (m_ydweTrigger->isEnable())
+	{
+		actions += action_code;
+		m_ydweTrigger->onActionsToFuncEnd(actions, root);
+	}
+	else
+	{
+		actions += action_code;
+	}
 
 
-return seperator + "// Trigger: " + *root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
+	actions += "endfunction\n\n";
+
+	if (!conditions.empty()) {
+		conditions = "function Trig_" + trigger_name + "_Conditions takes nothing returns boolean\n" + conditions;
+		conditions += "\treturn true\n";
+		conditions += "endfunction\n\n";
+
+		events += "\tcall TriggerAddCondition(" + trigger_variable_name + ", Condition(function Trig_" + trigger_name + "_Conditions))\n";
+	}
+
+	events += "\tcall TriggerAddAction(" + trigger_variable_name + ", function " + trigger_action_name + ")\n";
+	events += "endfunction\n\n";
+
+	std::string logo = u8"//自定义jass生成器 作者： 阿七  \n//有bug到魔兽地图编辑器吧 @w4454962 \n";
+
+
+	return seperator + "// Trigger: " + *root->getName() + "\n" + logo + seperator + pre_actions + conditions + actions + seperator + events;
 }
 
 
@@ -1726,7 +1726,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 	word::ActionInoListPtr group_ptr;
 
 	word::HandlerPtr script_ptr;
-	
+
 	VarTablePtr table;
 	VarTablePtr last_table;
 
@@ -1790,7 +1790,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 		if (!parent || parent->isRootNode())//如果是在触发中
 		{
 			parent_name = "trigger";
-		} 
+		}
 		else
 		{
 			ActionNodePtr ptr = branch;
@@ -1823,64 +1823,86 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 
 	auto& lines = script_ptr->lines;
 
-	for (size_t l = 0; l < lines.size(); l++) 
+	for (size_t l = 0; l < lines.size(); l++)
 	{
 		const auto& line = lines[l];
-		std::string str;
-
+		
 		auto& values = line.values;
 
 		for (size_t p = 0; p < values.size(); p++)
 		{
 			const auto& item = values[p];
-			switch (item.type)
-			{
+			const auto& call = item.call;
+			std::string str;
 
-			//$0获取参数
-			case word::ValueInfo::Type::args:
+			if (item.type == word::ValueInfo::TYPE::CODE)
 			{
-				int index = min(item.args_index, (int)action->param_count);
-				str += convertParameter(parammeters[index], node, pre_actions);
-				break;
-			}
-
-			//~0 获取参数类型
-			case word::ValueInfo::Type::args_type:
-			{
-				int index = min(item.args_index, (int)action->param_count);
-				str += parammeters[index]->type_name;
-				break;
-			}
-			//^0 获取逆天参数类型
-			case word::ValueInfo::Type::args_type2:
-			{
-				int index = min(item.args_index, (int)action->param_count);
-				str += parammeters[index]->value + 11; //typename_01_integer + 11 = integer
-				break;
-			}
-
-			//$key 根据对应的动作所属类型 来取对应数值
-			case word::ValueInfo::Type::param:
-			{
-				const std::string& key = item.data;
-
-				if (group_ptr)
+				//除了第一行之外，在每行开头处增加缩进
+				if (!output.empty() && p == 0)
 				{
-					auto& info = (*group_ptr)[param_group_id];
-					std::string value;
-					if (param_group_id < group_ptr->size() && info.get_value(key, value))
-					{
-						str += value;
-						break;
-					}
+					str += spaces[space_stack];
 				}
-				switch (hash_(key.c_str()))
+				const auto& code = *item.code;
+				if (code[0] == '\n' && str.size() > 0)
 				{
+					if (str[str.size() - 1] != '\n')
+						str += code;
+					break;
+				}
+				str += code;
+		
+			}
+			else if (call) 
+			{
 
-				case "func"s_hash:
+				const auto& params = call->params;
+
+				switch (hash_(call->name.c_str()))
 				{
+				case "get"s_hash: //获取参数
+				{
+					if (params.size() == 0)
+						break;
+					uint32_t index = min(params[0].uint, action->param_count);
+					str += convertParameter(parammeters[index], node, pre_actions);
+
+					break;
+				}
+				case "get_type"s_hash: //获取参数类型
+				{
+					if (params.size() == 0)
+						break;
+					uint32_t index = min(params[0].uint, action->param_count);
+					str += convertParameter(parammeters[index], node, pre_actions);
+					break;
+				}
+
+				case "get_value"s_hash: //取动作组中配置好的值
+				{
+					if (params.size() == 0)
+						break;
+
+					if (group_ptr)
+					{
+						const std::string& key = call->params[0].string;
+						auto& info = (*group_ptr)[param_group_id];
+						std::string value;
+						if (param_group_id < group_ptr->size() && info.get_value(key, value))
+						{
+							str += value;
+							break;
+						}
+					}
+
+					break;
+				}
+				case "func_name"s_hash: //生成函数名
+				{
+					if (params.size() == 0)
+						break;
+
 					//生成 或取一个函数名
-					std::string func_index = std::to_string(item.args_index);
+					std::string func_index = std::to_string(params[0].uint);
 					auto it = func_name.find(func_index);
 					if (it == func_name.end())
 					{
@@ -1894,240 +1916,229 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 					}
 					break;
 				}
-				case "loop"s_hash:
+				case "loop_name"s_hash: //转换参数值为循环遍历名
 				{
+					if (params.size() == 0)
+						break;
 					//如果是取参数转换为循环变量名的话
-					int index = item.args_index;
+					uint32_t index = params[0].uint;
 					if (index == -1) break;
-					index = min(index, (int)action->param_count);
+					index = min(index, action->param_count);
 					std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
 					convert_loop_var_name(name);
 					str += name;
 					break;
 				}
-				case "retn"s_hash:
+				case "get_return_type"s_hash: //获取返回类型
 				{
-
-				}
-				}
-				break;
-
-			}
-
-			
-
-			// %0 解包动作组
-			case word::ValueInfo::Type::group:
-			{
-				
-				//只有动作组可以解包
-				if (!action_def->is_group())
 					break;
-
-				int s = 0;
-
-				int index = item.args_index;
-				bool firstBoolexper = true;
-				auto& info = (*group_ptr)[index];
-
-				std::vector<ActionNodePtr> list;
-
-				node->getChildNodeList(list);
-
-				space_stack++;
-				if (func_stack > 0)
+				}
+				case "add_local"s_hash: //注册局部变量
 				{
-					s = space_stack;
-					space_stack = 1;
+					if (params.size() < 2)
+						break;
+					localTable.emplace(params[0].string, params[1].string);
+					break;
+				}
+				case "get_ydtype"s_hash: //获取逆天类型值 原值+11
+				{
+					if (params.size() == 0)
+						break;
+					uint32_t index = min(params[0].uint, (int)action->param_count);
+					str += parammeters[index]->value + 11; //typename_01_integer + 11 = integer
+
+					break;
 				}
 
-				for (size_t i = 0; i < list.size(); i++)
+				case "get_group"s_hash: //解包指定子id的动作
 				{
-					auto& child = list[i];
-					Action* childAction = child->getAction();
+					if (params.size() == 0)
+						break;
 
-					uint32_t child_id = child->getActionId();
+					//只有动作组可以解包
+					if (!action_def->is_group())
+						break;
 
-					auto type = child->getActionType();
+					int s = 0;
 
-					//生成动作
-					if (index != child_id || child_id >= group_ptr->size())
+					uint32_t index = params[0].uint;
+
+					bool firstBoolexper = true;
+					auto& info = (*group_ptr)[index];
+
+					std::vector<ActionNodePtr> list;
+
+					node->getChildNodeList(list);
+
+					space_stack++;
+					if (func_stack > 0)
 					{
-						continue;
+						s = space_stack;
+						space_stack = 1;
 					}
-					if (type != Action::Type::condition)
+
+					for (size_t i = 0; i < list.size(); i++)
 					{
-						if (info.is_child)
-							str += spaces[space_stack];
-						else
-							str += spaces[space_stack - 1];
-					}
-					
-					//事件需要默认一个参数
-					if (type == Action::Type::event)
-					{
-						if (child->getNameId() == "MapInitializationEvent"s_hash)
+						auto& child = list[i];
+						Action* childAction = child->getAction();
+
+						uint32_t child_id = child->getActionId();
+
+						auto type = child->getActionType();
+
+						//生成动作
+						if (index != child_id || child_id >= group_ptr->size())
 						{
 							continue;
 						}
-						m_ydweTrigger->onRegisterEvent(str, child);
-
-						str += "call " + getBaseName(child) + "(";
-
-						std::string value;
-						auto& info = (*group_ptr)[index];
-						if (!info.get_value("handle", value)) 
+						if (type != Action::Type::condition)
 						{
-							value = "null";
+							if (info.is_child)
+								str += spaces[space_stack];
+							else
+								str += spaces[space_stack - 1];
 						}
-						str += value;
 
-						for (size_t k = 0; k < childAction->param_count; k++)
+						//事件需要默认一个参数
+						if (type == Action::Type::event)
 						{
-							str += ", ";
-							str += convertParameter(childAction->parameters[k], child, pre_actions);
+							if (child->getNameId() == "MapInitializationEvent"s_hash)
+							{
+								continue;
+							}
+							m_ydweTrigger->onRegisterEvent(str, child);
+
+							str += "call " + getBaseName(child) + "(";
+
+							std::string value;
+							auto& info = (*group_ptr)[index];
+							if (!info.get_value("handle", value))
+							{
+								value = "null";
+							}
+							str += value;
+
+							for (size_t k = 0; k < childAction->param_count; k++)
+							{
+								str += ", ";
+								str += convertParameter(childAction->parameters[k], child, pre_actions);
+							}
+							str += ")\n";
+							m_ydweTrigger->onRegisterEvent2(str, child);
+
 						}
-						str += ")\n";
-						m_ydweTrigger->onRegisterEvent2(str, child);
-
-					}
-					else if (type == Action::Type::condition)
-					{
-						std::string value;
-
-						if (firstBoolexper)
+						else if (type == Action::Type::condition)
 						{
-							firstBoolexper = false;
+							std::string value;
+
+							if (firstBoolexper)
+							{
+								firstBoolexper = false;
+							}
+							else
+							{
+								auto& info = (*group_ptr)[index];
+								if (!info.get_value("Compare", value))
+								{
+									value = "and";
+								}
+								value = " " + value + " ";
+							}
+							str += value;
+							str += "(" + convertAction(child, pre_actions, true) + ")";
 						}
 						else
 						{
-							auto& info = (*group_ptr)[index];
-							if (!info.get_value("Compare", value))
+							str += convertAction(child, pre_actions, false);
+							if (str.size() > 0 && str[str.size() - 1] != '\n')
 							{
-								value = "and";
-							}
-							value = " " + value + " ";
-						}
-						str += value;
-						str += "(" + convertAction(child, pre_actions, true) + ")";
-					}
-					else
-					{
-						str += convertAction(child, pre_actions, false) ;
-						if (str.size() > 0 && str[str.size() - 1] != '\n')
-						{
-							str += "\n";
-						}
-					}
-				}
-				if (info.type_id == Action::Type::condition && firstBoolexper)
-				{
-					str += "true";
-				}
-				
-				if (s > 0) 
-				{
-					space_stack = s;
-				}
-				space_stack--;
-
-				//如果是自动传参的动作组 并且解包的是 参数代码
-				if (action_def->is_auto_param() && !info.is_child)
-				{
-					
-					//参数区已经手动传参，不需要再自动传
-					for (auto&[n, t] : param_table)
-					{
-						table->erase(n);
-						last_table->erase(n);
-					}
-
-					ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
-
-					//将当前这层变量表转换成代码
-					if (table->size() > 0)
-					{
-						for (auto&[n, t] : *table)
-						{
-							str += spaces[space_stack];
-							str += m_ydweTrigger->setLocal(temp, n, t, m_ydweTrigger->getLocal(node, n, t), true) + "\n";
-
-							//将这一层需要传参的变量 传递给上一层
-							if (last_table.get() != table.get())
-							{
-								last_table->emplace(n, t);
+								str += "\n";
 							}
 						}
-						table->clear();
 					}
-				}
-				break;
-			}
+					if (info.type_id == Action::Type::condition && firstBoolexper)
+					{
+						str += "true";
+					}
 
-			//其余内容
-			case word::ValueInfo::Type::code:
-				//除了第一行之外，在每行开头处增加缩进
-				if (!output.empty() && p == 0)
-				{
-					str += spaces[space_stack];
-				}
-				if (item.data[0] == '\n' && str.size() > 0)
-				{
-					if (str[str.size() - 1] != '\n')
-						str += item.data;
+					if (s > 0)
+					{
+						space_stack = s;
+					}
+					space_stack--;
+
+					//如果是自动传参的动作组 并且解包的是 参数代码
+					if (action_def->is_auto_param() && !info.is_child)
+					{
+
+						//参数区已经手动传参，不需要再自动传
+						for (auto&[n, t] : param_table)
+						{
+							table->erase(n);
+							last_table->erase(n);
+						}
+
+						ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
+
+						//将当前这层变量表转换成代码
+						if (table->size() > 0)
+						{
+							for (auto&[n, t] : *table)
+							{
+								str += spaces[space_stack];
+								str += m_ydweTrigger->setLocal(temp, n, t, m_ydweTrigger->getLocal(node, n, t), true) + "\n";
+
+								//将这一层需要传参的变量 传递给上一层
+								if (last_table.get() != table.get())
+								{
+									last_table->emplace(n, t);
+								}
+							}
+							table->clear();
+						}
+						break;
+					}
+
 					break;
 				}
-				str += item.data;
+				}
+
+			}
+			switch (line.type)
+			{
+			case word::LineInfo::TYPE::FUNCTION:
+			{
+				if (m_ydweTrigger->isEnable())
+				{
+					if (values.size() > 0)
+					{
+						const auto& value = values[0];
+						const auto& code = *(values[0].code);
+						if (value.type != word::ValueInfo::TYPE::CODE)
+							break;
+						if (code.find("endfunction") != std::string::npos)
+						{
+							m_ydweTrigger->onActionsToFuncEnd(func, node);
+							func += str;
+							func_stack--;
+							break;
+						}
+						else if (code.find("function") != std::string::npos)
+						{
+							func += str;
+							m_ydweTrigger->onActionsToFuncBegin(func, node);
+							func_stack++;
+							break;
+						}
+					}
+				}
+				func += str;
 				break;
 			}
-		}
-
-		switch (line.type)
-		{
-		case word::LineInfo::Type::function:
-		{
-			if (m_ydweTrigger->isEnable())
-			{
-				if (values.size() > 0)
-				{
-					auto& data = values[0].data;
-					if (data.find("endfunction") != std::string::npos)
-					{
-						m_ydweTrigger->onActionsToFuncEnd(func, node);
-						func += str;
-						func_stack--;
-						break;
-					}
-					else if (data.find("function") != std::string::npos) {
-						func += str;
-						m_ydweTrigger->onActionsToFuncBegin(func, node);
-						func_stack++;
-						break;
-					}
-				}
+			case word::LineInfo::TYPE::ACTION:
+				output += str;
 			}
-			func += str;
-			break;
 		}
-		case word::LineInfo::Type::local: 
-		{
-			if (!str.empty())
-			{
-				std::regex reg("\\s*local\\s+(\\w+)\\s+(\\w+)\\s*");
-				auto words_end = std::sregex_iterator();
-				auto words_begin = std::sregex_iterator(str.begin(), str.end(), reg);
-				//正则表达式解析 需要申明的局部变量类型跟名字 防止重复申明
-				for (; words_begin != words_end; ++words_begin)
-				{
-					localTable.emplace(words_begin->str(2),words_begin->str(1));
-				}
-			}
-			break;
-		}
-		case word::LineInfo::Type::action: 
-			output += str;
-		}
-		
 	}
 	pre_actions += func;
 	return output;
