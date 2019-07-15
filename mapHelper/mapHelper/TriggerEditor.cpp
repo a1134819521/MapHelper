@@ -59,7 +59,7 @@ void TriggerEditor::loadTriggerConfig(TriggerConfigData* data)
 	fs::path current = buffer;
 	current.remove_filename();
 	
-	current = "E:\\MapHelper_git";
+	current = "D:\\MapHelper_git";
 
 	if (!group.load(current / "group.json")) {
 		std::cout << "json读取失败\n";
@@ -1752,35 +1752,35 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 			//如果当前这层有需要申请的变量表
 			table = node->getVarTable();
 
-			std::vector<ActionNodePtr> list;
-			node->getChildNodeList(list);
-
-			for (const auto& child : list)
-			{
-				uint32_t child_id = child->getActionId();
-				auto& info = (*group_ptr)[child_id];
-				if (child_id < group_ptr->size() && !info.is_child)
-				{
-					uint32_t hash = child->getNameId();
-					Action* childAction = child->getAction();
-
-					switch (child->getNameId())
-					{
-						//在逆天计时器参数中使用逆天局部变量
-					case "YDWESetAnyTypeLocalArray"s_hash:
-					case "YDWESetAnyTypeLocalVariable"s_hash:
-					{
-						std::string var_name = childAction->parameters[1]->value;
-						std::string var_type = childAction->parameters[0]->value + 11;
-						param_table.emplace(var_name, var_type);
-						break;
-					}
-					}
-				}
-			}
+			//std::vector<ActionNodePtr> list;
+			//node->getChildNodeList(list);
+			//
+			//for (const auto& child : list)
+			//{
+			//	uint32_t child_id = child->getActionId();
+			//	auto& info = (*group_ptr)[child_id];
+			//	if (child_id < group_ptr->size() && !info.is_child)
+			//	{
+			//		uint32_t hash = child->getNameId();
+			//		Action* childAction = child->getAction();
+			//
+			//		switch (child->getNameId())
+			//		{
+			//			//在逆天计时器参数中使用逆天局部变量
+			//		case "YDWESetAnyTypeLocalArray"s_hash:
+			//		case "YDWESetAnyTypeLocalVariable"s_hash:
+			//		{
+			//			std::string var_name = childAction->parameters[1]->value;
+			//			std::string var_type = childAction->parameters[0]->value + 11;
+			//			param_table.emplace(var_name, var_type);
+			//			break;
+			//		}
+			//		}
+			//	}
+			//}
 		}
 	}
-	else if (def_type == word::ActionDef::ACTION)
+	else //if (def_type == word::ActionDef::ACTION)
 	{
 		ActionNodePtr branch = node->getBranchNode();
 		ActionNodePtr parent = branch->getParentNode();
@@ -1811,10 +1811,10 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 		}
 		script_ptr = action_def->get_script(parent_name);
 	}
-	else if (def_type == word::ActionDef::VALUE)
-	{
-
-	}
+	//else if (def_type == word::ActionDef::VALUE)
+	//{
+	//
+	//}
 
 	if (!script_ptr)
 	{
@@ -1829,315 +1829,348 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 		
 		auto& values = line.values;
 
+		std::string strline;
+
 		for (size_t p = 0; p < values.size(); p++)
 		{
 			const auto& item = values[p];
 			const auto& call = item.call;
-			std::string str;
 
 			if (item.type == word::ValueInfo::TYPE::CODE)
 			{
 				//除了第一行之外，在每行开头处增加缩进
 				if (!output.empty() && p == 0)
 				{
-					str += spaces[space_stack];
+					strline += spaces[space_stack];
 				}
 				const auto& code = *item.code;
-				if (code[0] == '\n' && str.size() > 0)
+				//处理多余换行
+				if (code[0] == '\n')
 				{
-					if (str[str.size() - 1] != '\n')
-						str += code;
-					break;
+					if (strline.size() > 0)
+					{
+						if (strline[strline.size() - 1] != '\n')
+							strline += code;
+						continue;
+					} 
+					else
+					{
+						continue;
+					}
 				}
-				str += code;
+				
+				strline += code;
 		
 			}
 			else if (call) 
 			{
+				std::function <std::string(word::CallPtr call)> call_func;
 
-				const auto& params = call->params;
-
-				switch (hash_(call->name.c_str()))
+				std::function <uint32_t(word::Param&)> param2uint = [&](word::Param& param) 
 				{
-				case "get"s_hash: //获取参数
-				{
-					if (params.size() == 0)
-						break;
-					uint32_t index = min(params[0].uint, action->param_count);
-					str += convertParameter(parammeters[index], node, pre_actions);
-
-					break;
-				}
-				case "get_type"s_hash: //获取参数类型
-				{
-					if (params.size() == 0)
-						break;
-					uint32_t index = min(params[0].uint, action->param_count);
-					str += convertParameter(parammeters[index], node, pre_actions);
-					break;
-				}
-
-				case "get_value"s_hash: //取动作组中配置好的值
-				{
-					if (params.size() == 0)
-						break;
-
-					if (group_ptr)
+					if (param.type == word::Param::TYPE::CALL)
 					{
-						const std::string& key = call->params[0].string;
-						auto& info = (*group_ptr)[param_group_id];
-						std::string value;
-						if (param_group_id < group_ptr->size() && info.get_value(key, value))
-						{
-							str += value;
+						return (uint32_t)std::stoi(call_func(param.call));
+					}
+					return param.uint;
+				};
+
+				std::function <std::string(word::Param&)> param2string = [&](word::Param& param)
+				{
+					if (param.type == word::Param::TYPE::CALL)
+					{
+						return call_func(param.call);
+					}
+					return param.string;
+				};
+
+				call_func = [&](word::CallPtr call) {
+					if (call == nullptr)
+					{
+						return std::string();
+					}
+					std::string& name = call->name;
+					std::vector<word::Param>& params = call->params;
+
+					switch (hash_(name.c_str()))
+					{
+					case "get"s_hash: //获取参数
+					{
+						if (params.size() == 0)
 							break;
-						}
+						uint32_t index = min(param2uint(params[0]), action->param_count);
+						return convertParameter(parammeters[index], node, pre_actions);
+					}
+					case "get_type"s_hash: //获取参数类型
+					{
+						if (params.size() == 0)
+							break;
+						uint32_t index = min(param2uint(params[0]), action->param_count);
+						return convertParameter(parammeters[index], node, pre_actions);
+						break;
 					}
 
-					break;
-				}
-				case "func_name"s_hash: //生成函数名
-				{
-					if (params.size() == 0)
-						break;
-
-					//生成 或取一个函数名
-					std::string func_index = std::to_string(params[0].uint);
-					auto it = func_name.find(func_index);
-					if (it == func_name.end())
+					case "get_value"s_hash: //取动作组中配置好的值
 					{
-						std::string name = generate_function_name(node->getTriggerNamePtr());
-						func_name[func_index] = name;
-						str += name;
-					}
-					else
-					{
-						str += it->second;
-					}
-					break;
-				}
-				case "loop_name"s_hash: //转换参数值为循环遍历名
-				{
-					if (params.size() == 0)
-						break;
-					//如果是取参数转换为循环变量名的话
-					uint32_t index = params[0].uint;
-					if (index == -1) break;
-					index = min(index, action->param_count);
-					std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
-					convert_loop_var_name(name);
-					str += name;
-					break;
-				}
-				case "get_return_type"s_hash: //获取返回类型
-				{
-					break;
-				}
-				case "add_local"s_hash: //注册局部变量
-				{
-					if (params.size() < 2)
-						break;
-					localTable.emplace(params[0].string, params[1].string);
-					break;
-				}
-				case "get_ydtype"s_hash: //获取逆天类型值 原值+11
-				{
-					if (params.size() == 0)
-						break;
-					uint32_t index = min(params[0].uint, (int)action->param_count);
-					str += parammeters[index]->value + 11; //typename_01_integer + 11 = integer
+						if (params.size() == 0)
+							break;
 
-					break;
-				}
-
-				case "get_group"s_hash: //解包指定子id的动作
-				{
-					if (params.size() == 0)
-						break;
-
-					//只有动作组可以解包
-					if (!action_def->is_group())
-						break;
-
-					int s = 0;
-
-					uint32_t index = params[0].uint;
-
-					bool firstBoolexper = true;
-					auto& info = (*group_ptr)[index];
-
-					std::vector<ActionNodePtr> list;
-
-					node->getChildNodeList(list);
-
-					space_stack++;
-					if (func_stack > 0)
-					{
-						s = space_stack;
-						space_stack = 1;
-					}
-
-					for (size_t i = 0; i < list.size(); i++)
-					{
-						auto& child = list[i];
-						Action* childAction = child->getAction();
-
-						uint32_t child_id = child->getActionId();
-
-						auto type = child->getActionType();
-
-						//生成动作
-						if (index != child_id || child_id >= group_ptr->size())
+						if (group_ptr)
 						{
-							continue;
-						}
-						if (type != Action::Type::condition)
-						{
-							if (info.is_child)
-								str += spaces[space_stack];
-							else
-								str += spaces[space_stack - 1];
-						}
-
-						//事件需要默认一个参数
-						if (type == Action::Type::event)
-						{
-							if (child->getNameId() == "MapInitializationEvent"s_hash)
-							{
-								continue;
-							}
-							m_ydweTrigger->onRegisterEvent(str, child);
-
-							str += "call " + getBaseName(child) + "(";
-
+							const std::string& key = param2string(params[0]);
+							auto& info = (*group_ptr)[param_group_id];
 							std::string value;
-							auto& info = (*group_ptr)[index];
-							if (!info.get_value("handle", value))
+							if (param_group_id < group_ptr->size() && info.get_value(key, value))
 							{
-								value = "null";
+								return value;
 							}
-							str += value;
-
-							for (size_t k = 0; k < childAction->param_count; k++)
-							{
-								str += ", ";
-								str += convertParameter(childAction->parameters[k], child, pre_actions);
-							}
-							str += ")\n";
-							m_ydweTrigger->onRegisterEvent2(str, child);
-
 						}
-						else if (type == Action::Type::condition)
-						{
-							std::string value;
 
-							if (firstBoolexper)
-							{
-								firstBoolexper = false;
-							}
-							else
-							{
-								auto& info = (*group_ptr)[index];
-								if (!info.get_value("Compare", value))
-								{
-									value = "and";
-								}
-								value = " " + value + " ";
-							}
-							str += value;
-							str += "(" + convertAction(child, pre_actions, true) + ")";
+						break;
+					}
+					case "func_name"s_hash: //生成函数名
+					{
+						if (params.size() == 0)
+							break;
+
+						//生成 或取一个函数名
+						std::string func_index = std::to_string(param2uint(params[0]));
+						auto it = func_name.find(func_index);
+						if (it == func_name.end())
+						{
+							std::string name = generate_function_name(node->getTriggerNamePtr());
+							func_name[func_index] = name;
+							return name;
 						}
 						else
 						{
-							str += convertAction(child, pre_actions, false);
-							if (str.size() > 0 && str[str.size() - 1] != '\n')
-							{
-								str += "\n";
-							}
-						}
-					}
-					if (info.type_id == Action::Type::condition && firstBoolexper)
-					{
-						str += "true";
-					}
-
-					if (s > 0)
-					{
-						space_stack = s;
-					}
-					space_stack--;
-
-					//如果是自动传参的动作组 并且解包的是 参数代码
-					if (action_def->is_auto_param() && !info.is_child)
-					{
-
-						//参数区已经手动传参，不需要再自动传
-						for (auto&[n, t] : param_table)
-						{
-							table->erase(n);
-							last_table->erase(n);
-						}
-
-						ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
-
-						//将当前这层变量表转换成代码
-						if (table->size() > 0)
-						{
-							for (auto&[n, t] : *table)
-							{
-								str += spaces[space_stack];
-								str += m_ydweTrigger->setLocal(temp, n, t, m_ydweTrigger->getLocal(node, n, t), true) + "\n";
-
-								//将这一层需要传参的变量 传递给上一层
-								if (last_table.get() != table.get())
-								{
-									last_table->emplace(n, t);
-								}
-							}
-							table->clear();
+							return it->second;
 						}
 						break;
 					}
-
-					break;
-				}
-				}
-
-			}
-			switch (line.type)
-			{
-			case word::LineInfo::TYPE::FUNCTION:
-			{
-				if (m_ydweTrigger->isEnable())
-				{
-					if (values.size() > 0)
+					case "loop_name"s_hash: //转换参数值为循环遍历名
 					{
-						const auto& value = values[0];
-						const auto& code = *(values[0].code);
-						if (value.type != word::ValueInfo::TYPE::CODE)
+						if (params.size() == 0)
 							break;
-						if (code.find("endfunction") != std::string::npos)
+						//如果是取参数转换为循环变量名的话
+						uint32_t index = param2uint(params[0]);
+						if (index == -1) break;
+						index = min(index, action->param_count);
+						std::string name = "ydul_" + convertParameter(parammeters[index], node, pre_actions);
+						convert_loop_var_name(name);
+						return name;
+					}
+					case "get_return_type"s_hash: //获取返回类型
+					{
+						break;
+					}
+					case "add_local"s_hash: //注册局部变量
+					{
+						if (params.size() < 2)
+							break;
+						localTable.emplace(params[0].string, params[1].string);
+						break;
+					}
+					case "get_ydtype"s_hash: //获取逆天类型值 原值+11
+					{
+						if (params.size() == 0)
+							break;
+						uint32_t index = min(param2uint(params[0]), (int)action->param_count);
+						return std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
+					}
+
+					case "get_group"s_hash: //解包指定子id的动作
+					{
+						if (params.size() == 0)
+							break;
+
+						//只有动作组可以解包
+						if (!action_def->is_group())
+							break;
+
+						int s = 0;
+
+						uint32_t index = param2uint(params[0]);
+						if (index >= group_ptr->size())
+							break;
+
+						bool firstBoolexper = true;
+						auto& info = (*group_ptr)[index];
+
+						std::vector<ActionNodePtr> list;
+
+						node->getChildNodeList(list);
+
+						space_stack++;
+						if (func_stack > 0)
 						{
-							m_ydweTrigger->onActionsToFuncEnd(func, node);
-							func += str;
-							func_stack--;
-							break;
+							s = space_stack;
+							space_stack = 1;
 						}
-						else if (code.find("function") != std::string::npos)
+						std::string result;
+						for (size_t i = 0; i < list.size(); i++)
 						{
-							func += str;
-							m_ydweTrigger->onActionsToFuncBegin(func, node);
-							func_stack++;
-							break;
+							auto& child = list[i];
+							Action* childAction = child->getAction();
+
+							uint32_t child_id = child->getActionId();
+
+							auto type = child->getActionType();
+
+							//生成动作
+							if (index != child_id || child_id >= group_ptr->size())
+							{
+								continue;
+							}
+							if (type != Action::Type::condition)
+							{
+								if (info.is_child)
+									result += spaces[space_stack];
+								else
+									result += spaces[space_stack - 1];
+							}
+
+							//事件需要默认一个参数
+							if (type == Action::Type::event)
+							{
+								if (child->getNameId() == "MapInitializationEvent"s_hash)
+								{
+									continue;
+								}
+								m_ydweTrigger->onRegisterEvent(result, child);
+
+								result += "call " + getBaseName(child) + "(";
+
+								std::string value;
+								auto& info = (*group_ptr)[index];
+								if (!info.get_value("handle", value))
+								{
+									value = "null";
+								}
+								result += value;
+
+								for (size_t k = 0; k < childAction->param_count; k++)
+								{
+									result += ", ";
+									result += convertParameter(childAction->parameters[k], child, pre_actions);
+								}
+								result += ")\n";
+								m_ydweTrigger->onRegisterEvent2(result, child);
+
+							}
+							else if (type == Action::Type::condition)
+							{
+								std::string value;
+
+								if (firstBoolexper)
+								{
+									firstBoolexper = false;
+								}
+								else
+								{
+									auto& info = (*group_ptr)[index];
+									if (!info.get_value("Compare", value))
+									{
+										value = "and";
+									}
+									value = " " + value + " ";
+								}
+								result += value;
+								result += "(" + convertAction(child, pre_actions, true) + ")";
+							}
+							else
+							{
+								result += convertAction(child, pre_actions, false);
+								if (result.size() > 0 && result[result.size() - 1] != '\n')
+								{
+									result += "\n";
+								}
+							}
 						}
+						if (info.type_id == Action::Type::condition && firstBoolexper)
+						{
+							result += "true";
+						}
+
+						if (s > 0)
+						{
+							space_stack = s;
+						}
+						space_stack--;
+
+						//如果是自动传参的动作组 并且解包的是 参数代码
+						if (action_def->is_auto_param() && !info.is_child)
+						{
+
+							//参数区已经手动传参，不需要再自动传
+							for (auto&[n, t] : param_table)
+							{
+								table->erase(n);
+								last_table->erase(n);
+							}
+
+							ActionNodePtr temp = ActionNodePtr(new ActionNode(action, node));
+
+							//将当前这层变量表转换成代码
+							if (table->size() > 0)
+							{
+								for (auto&[n, t] : *table)
+								{
+									result += spaces[space_stack];
+									result += m_ydweTrigger->setLocal(temp, n, t, m_ydweTrigger->getLocal(node, n, t), true) + "\n";
+
+									//将这一层需要传参的变量 传递给上一层
+									if (last_table.get() != table.get())
+									{
+										last_table->emplace(n, t);
+									}
+								}
+								table->clear();
+							}
+						}
+						return result;
+					}
+					}
+					return std::string();
+				};
+
+				strline += call_func(call);
+			}
+			
+		}
+
+		switch (line.type)
+		{
+		case word::LineInfo::TYPE::FUNCTION:
+		{
+			if (values.size() > 0)
+			{
+				const auto& value = values[0];
+				const auto& code = *(values[0].code);
+				if (value.type == word::ValueInfo::TYPE::CODE)
+				{
+					if (code.find("endfunction") != std::string::npos)
+					{
+						m_ydweTrigger->onActionsToFuncEnd(func, node);
+						func += strline;
+						func_stack--;
+						break;
+					}
+					else if (code.find("function") != std::string::npos)
+					{
+						func += strline;
+						m_ydweTrigger->onActionsToFuncBegin(func, node);
+						func_stack++;
+						break;
 					}
 				}
-				func += str;
-				break;
 			}
-			case word::LineInfo::TYPE::ACTION:
-				output += str;
-			}
+
+			func += strline;
+			break;
+		}
+		case word::LineInfo::TYPE::ACTION:
+			output += strline;
 		}
 	}
 	pre_actions += func;

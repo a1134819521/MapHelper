@@ -17,7 +17,7 @@ namespace word {
 		TYPE type;
 		uint32_t uint;
 		std::string string;
-
+		 
 		CallPtr call;
 	};
 	struct Call {
