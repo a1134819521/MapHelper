@@ -65,27 +65,29 @@ namespace script {
 			ActionNodePtr branch = node->getBranchNode();
 			ActionNodePtr parent = branch->getParentNode();
 
-			std::string parent_name = "default";
+			const char* parent_name = "default";
 
-			if (!parent || parent->isRootNode()) {//如果是在触发中
-				parent_name = "trigger";
-			} else {
-				ActionNodePtr ptr = branch;
+			if (action_def->is_auto_param()) {
+				if (!parent || parent->isRootNode()) {//如果是在触发中
+					parent_name = "trigger";
+				}
+				else {
+					ActionNodePtr ptr = branch;
 
-				//否则搜素上一层带传参的父节点
-				while (!ptr->isRootNode()) {
-					ActionNodePtr parent_ptr = ptr->getParentNode();
-					auto parent_def_ptr = group.get_action_def(*parent_ptr->getName());
-					if (parent_def_ptr && parent_def_ptr->is_auto_param()) {
-						group_id = ptr->getActionId();
-						group_ptr = parent_def_ptr->get_group();
-						parent_name = *parent_ptr->getName();
-						break;
+					//否则搜素上一层带传参的父节点
+					while (!ptr->isRootNode()) {
+						ActionNodePtr parent_ptr = ptr->getParentNode();
+						auto parent_def_ptr = group.get_action_def(*parent_ptr->getName());
+						if (parent_def_ptr && parent_def_ptr->is_auto_param()) {
+							group_id = ptr->getActionId();
+							group_ptr = parent_def_ptr->get_group();
+							parent_name = parent_ptr->getName()->c_str();
+							break;
+						}
+						ptr = parent_ptr;
 					}
-					ptr = parent_ptr;
 				}
 			}
-
 			script = action_def->get_script(parent_name);
 
 			script_info = { action_def, script, group_ptr, group_id };
@@ -95,16 +97,13 @@ namespace script {
 		return false;
 	}
 
-	std::string Converter::execute(ActionNodePtr node, std::string& pre_actions, ScriptInfo& info)
+	bool Converter::execute(ActionNodePtr node, std::string& output, std::string& pre_actions, ScriptInfo& info)
 	{
 
 		if (!info.script)
-			return "";
+			return false;
 
 		auto ydtrigger = YDTrigger::getInstance();
-
-
-		std::string output;
 
 		std::string func;
 
@@ -138,7 +137,7 @@ namespace script {
 					}
 					strline += code;
 				} else {
-					strline += call_func(item.call, info, node, pre_actions);
+					call_func(item.call, info, node,strline, pre_actions);
 				}
 
 			}
@@ -177,30 +176,36 @@ namespace script {
 				output += strline;
 			}
 		}
-
-
 		m_func_name.clear();
+
+	
 		pre_actions += func;
-		return output;
+		return true;
 	}
 
 
-	std::string Converter::call_func(CallPtr call,ScriptInfo& info,ActionNodePtr node, std::string& pre_actions) {
+	bool Converter::call_func(CallPtr call,ScriptInfo& info,ActionNodePtr node, std::string& output, std::string& pre_actions) {
 
 		if (!call) {
-			return "";
+			return false;
 		}
 
 		std::function <uint32_t(script::Param&)> param2uint = [&](script::Param& param) {
 			if (param.type == script::Param::TYPE::CALL) {
-				return (uint32_t)std::stoi(call_func(param.call, info, node, pre_actions));
+				std::string result;
+				if (call_func(param.call, info, node, result, pre_actions)) {
+					return (uint32_t)std::stoi(result);
+				}
 			}
 			return param.uint;
 		};
 
 		std::function <std::string(script::Param&)> param2string = [&](script::Param& param) {
 			if (param.type == script::Param::TYPE::CALL) {
-				return call_func(param.call,info,node,pre_actions);
+				std::string result;
+				if (call_func(param.call, info, node, result, pre_actions)) {
+					return result;
+				}
 			}
 			return param.string;
 		};
@@ -226,39 +231,42 @@ namespace script {
 		case "get"s_hash: //获取参数
 		{
 			if (params.size() == 0)
-				break;
+				return false;
+
 			uint32_t index = min(param2uint(params[0]), action->param_count);
-			return editor.convertParameter(parammeters[index], node, pre_actions);
+			output+=editor.convertParameter(parammeters[index], node, pre_actions);
+			return true;
 		}
 		case "get_type"s_hash: //获取参数类型
 		{
 			if (params.size() == 0)
-				break;
+				return false;
+
 			uint32_t index = min(param2uint(params[0]), action->param_count);
-			return editor.convertParameter(parammeters[index], node, pre_actions);
-			break;
+			output +=editor.convertParameter(parammeters[index], node, pre_actions);
+			return true;;
 		}
 
 		case "get_value"s_hash: //取动作组中配置好的值
 		{
 			if (params.size() == 0)
-				break;
+				return false;
 
 			if (group_ptr) {
 				const std::string& key = param2string(params[0]);
 				auto& info = (*group_ptr)[group_id];
 				std::string value;
 				if (group_id < group_ptr->size() && info.get_value(key, value)) {
-					return value;
+					output += value;
+					return true;
 				}
 			}
-
-			break;
+			return false;
 		}
 		case "func_name"s_hash: //生成函数名
 		{
 			if (params.size() == 0)
-				break;
+				return false;
 
 			//生成 或取一个函数名
 			std::string func_index = std::to_string(param2uint(params[0]));
@@ -266,41 +274,44 @@ namespace script {
 			if (it == m_func_name.end()) {
 				std::string name = editor.generate_function_name(node->getTriggerNamePtr());
 				m_func_name[func_index] = name;
-				return name;
+				output += name;
+				return true;
 			} else {
-				return it->second;
+				output += it->second;
+				return true;
 			}
-			break;
+			return false;
 		}
 		case "loop_name"s_hash: //转换参数值为循环遍历名
 		{
 			if (params.size() == 0)
-				break;
+				return false;
 			//如果是取参数转换为循环变量名的话
 			uint32_t index = param2uint(params[0]);
 			if (index == -1) break;
 			index = min(index, action->param_count);
 			std::string name = "ydul_" + editor.convertParameter(parammeters[index], node, pre_actions);
 			convert_loop_var_name(name);
-			return name;
+			output +=name;
+			return false;
 		}
 		case "get_return_type"s_hash: //获取返回类型
 		{
-			break;
+			return false;
 		}
 		case "add_local"s_hash: //注册局部变量
 		{
 			if (params.size() < 2)
-				break;
+				return false;
 			localTable.emplace(params[0].string, params[1].string);
 			break;
 		}
 		case "get_ydtype"s_hash: //获取逆天类型值 原值+11
 		{
 			if (params.size() == 0)
-				break;
+				return false;
 			uint32_t index = min(param2uint(params[0]), (int)action->param_count);
-			return std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
+			output +=std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
 		}
 
 		case "get_group"s_hash: //解包指定子id的动作
@@ -406,11 +417,12 @@ namespace script {
 			if (info.action_def->is_auto_param() && !action_info.is_child) {
 
 			}
-			return result;
+			output +=result;
+			return true;
 		}
 		}
 
-		return "";
+		return false;
 	}
 
 	Converter& get_converter()

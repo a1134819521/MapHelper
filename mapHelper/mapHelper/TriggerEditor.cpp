@@ -1723,7 +1723,11 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 
 	if (converter.find_script(node,*node->getName(),info))
 	{
-		return converter.execute(node, pre_actions, info);
+		std::string output;
+		if (converter.execute(node, output, pre_actions, info)) 
+		{
+			return output;
+		}
 	}
 
 	std::string output;

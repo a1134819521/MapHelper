@@ -23,11 +23,10 @@ namespace script {
 		
 		bool find_script(ActionNodePtr node, const std::string& name, ScriptInfo& script_info);
 		
-		std::string execute(ActionNodePtr node, std::string& pre_actions, ScriptInfo& info);
+		bool execute(ActionNodePtr node,std::string& output, std::string& pre_actions, ScriptInfo& info);
 
-		std::string call_func(CallPtr call, ScriptInfo& info, ActionNodePtr node, std::string& pre_actions);
+		bool call_func(CallPtr call, ScriptInfo& info, ActionNodePtr node,std::string& output, std::string& pre_actions);
 
-		ActionGroup& get_group();
 		
 	private:
 		
