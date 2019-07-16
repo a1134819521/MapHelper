@@ -143,8 +143,5 @@
     <ClCompile Include="script.cpp">
       <Filter>源文件\script</Filter>
     </ClCompile>
-    <ClCompile Include="group.cpp">
-      <Filter>源文件\script</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

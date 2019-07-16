@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "script.h"
-#include "script_group.hpp"
 
 namespace script {
 	Converter::Converter()  

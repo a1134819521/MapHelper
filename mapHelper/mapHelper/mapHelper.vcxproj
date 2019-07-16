@@ -190,7 +190,6 @@
     <ClCompile Include="..\3rd\Detours\src\modules.cpp" />
     <ClCompile Include="ActionNode.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="group.cpp" />
     <ClCompile Include="inline.cpp" />
     <ClCompile Include="json.cpp" />
     <ClCompile Include="mapHelper.cpp" />
