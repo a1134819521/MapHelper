@@ -1,5 +1,6 @@
 #include "ActionNode.h"
 #include "TriggerEditor.h"
+#include "script.h"
 
 ActionNode::ActionNode()
 	:m_action(0),
@@ -130,8 +131,8 @@ ActionNodePtr ActionNode::getBranchNode()
 	ActionNodePtr branch = shared_from_this();
 	ActionNodePtr parent = m_parent;
 
-	auto& editor = get_trigger_editor();
-	auto& group = editor.group;
+	auto& converter = script::get_converter();
+	auto& group = converter.group;
 	//ËÑË÷¸¸½Úµã
 	while (parent.get())
 	{
@@ -265,8 +266,8 @@ VarTablePtr ActionNode::getLastVarTable()
 
 	VarTablePtr retval;
 
-	auto& editor = get_trigger_editor();
-	auto& group = editor.group;
+	auto& converter = script::get_converter();
+	auto& group = converter.group;
 
 	while (node)
 	{

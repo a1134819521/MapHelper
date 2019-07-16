@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include "mapHelper.h"
 #include "singleton.h"
-
+#include "script.h"
 #include "json.hpp"
 #include <sstream>
 
@@ -115,8 +115,8 @@ static void __declspec(naked) insertConvertTrigger()
 //修改特定UI的子动作数量
 static int __fastcall fakeGetChildCount(Action* action)
 {
-	auto& editor = get_trigger_editor();
-	const auto def_ptr = editor.group.get_action_def(action->name);
+	auto& converter = script::get_converter();
+	const auto def_ptr = converter.group.get_action_def(action->name);
 
 	if (def_ptr) {
 		auto group_ptr = def_ptr->get_group();
@@ -132,8 +132,8 @@ static int __fastcall fakeGetChildCount(Action* action)
 static int __fastcall fakeGetString(Action* action, uint32_t edx,int index, char* buffer, int len)
 {
 
-	auto& editor = get_trigger_editor();
-	auto def_ptr = editor.group.get_action_def(action->name);
+	auto& converter = script::get_converter();
+	const auto def_ptr = converter.group.get_action_def(action->name);
 
 	if (def_ptr) {
 		auto group_ptr = def_ptr->get_group();
@@ -150,8 +150,8 @@ static int __fastcall fakeGetString(Action* action, uint32_t edx,int index, char
 //返回动作组的动作类型
 static int __fastcall fakeGetActionType(Action* action, uint32_t edx, int index)
 {
-	auto& editor = get_trigger_editor();
-	auto def_ptr = editor.group.get_action_def(action->name);
+	auto& converter = script::get_converter();
+	const auto def_ptr = converter.group.get_action_def(action->name);
 
 	if (def_ptr) {
 		auto group_ptr = def_ptr->get_group();

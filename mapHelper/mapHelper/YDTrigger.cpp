@@ -2,6 +2,7 @@
 #include "YDTrigger.h"
 #include "TriggerEditor.h"
 #include "WorldEditor.h"
+#include "script.h"
 #include <regex>
 
 YDTrigger::YDTrigger()
@@ -776,13 +777,13 @@ void YDTrigger::onActionsToFuncBegin(std::string& funcCode, ActionNodePtr node)
 		seachLocal(action->child_actions,action->child_count,action,true,false);
 	}
 
-	auto& editor = get_trigger_editor();
+	auto& converter = script::get_converter();
 
-	for (auto&[name, type] : editor.localTable)
+	for (auto&[name, type] : converter.localTable)
 	{
 		localTable->emplace(name, type);
 	}
-	editor.localTable.clear();
+	converter.localTable.clear();
 
 	for (auto&[name, type] : *localTable)
 	{

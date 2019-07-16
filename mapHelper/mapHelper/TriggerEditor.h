@@ -5,8 +5,6 @@
 #include "EditorData.h"
 #include "ActionNode.h"
 
-#include "script_group.hpp"
-
 class TriggerEditor
 {
 public:
@@ -25,8 +23,6 @@ public:
 	
 
 	std::string convertTrigger(Trigger* trigger);
-
-	std::string convertActionDef(ActionNodePtr node,script::ActionDefPtr action_def, std::string& pre_actions);
 
 	std::string convertAction(ActionNodePtr node, std::string& pre_actions, bool nested);
 
@@ -69,10 +65,6 @@ protected:
 
 public:
 
-	script::ActionGroup group;
-
-	std::map<std::string, std::string> localTable;
-	
 	std::map<std::string, Variable*> variableTable;
 
 	std::string spaces[200];
