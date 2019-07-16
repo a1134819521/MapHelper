@@ -21,6 +21,7 @@ namespace script {
 		CallPtr call;
 	};
 	struct Call {
+		uint32_t name_id;
 		std::string name;
 		std::vector<Param> params;
 	};
@@ -76,6 +77,9 @@ namespace script {
 			ValueInfo value;
 			value.type = ValueInfo::CALL;
 			value.call = call;
+			if (call) {
+				call->name_id = hash_(call->name.c_str());
+			}
 			accept_value(value);
 		}
 

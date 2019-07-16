@@ -19,7 +19,7 @@ namespace script {
 		bool is_child = false;
 
 
-		std::map<std::string, std::string> attrs;
+		std::unordered_map<std::string, std::string> attrs;
 
 		bool equal(const std::string& key, const std::string& value) {
 			auto it = attrs.find(key);
@@ -339,7 +339,7 @@ namespace script {
 
 
 		//单动作以及值 根据不同的 父节点 生成不同的脚本
-		std::map<std::string, HandlerPtr> m_scripts;
+		std::unordered_map<std::string, HandlerPtr> m_scripts;
 
 		//值的自动传参的模板
 		HandlerPtr m_auto_param_script;
@@ -351,7 +351,7 @@ namespace script {
 
 	};
 	typedef std::shared_ptr<ActionDef> ActionDefPtr;
-	typedef std::map<std::string, ActionDefPtr> GroupDef;
+	typedef std::unordered_map<std::string, ActionDefPtr> GroupDef;
 
 	class ActionGroup {
 

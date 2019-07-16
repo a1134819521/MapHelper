@@ -216,8 +216,6 @@ namespace script {
 
 		auto editor = get_trigger_editor();
 
-		std::string& name = call->name;
-
 		std::vector<script::Param>& params = call->params;
 
 		ActionInoListPtr& group_ptr = info.group;
@@ -226,7 +224,7 @@ namespace script {
 
 		auto ydtrigger = YDTrigger::getInstance();
 
-		switch (hash_(name.c_str())) 
+		switch (call->name_id) 
 		{
 		case "get"s_hash: //获取参数
 		{
@@ -304,7 +302,7 @@ namespace script {
 			if (params.size() < 2)
 				return false;
 			localTable.emplace(params[0].string, params[1].string);
-			break;
+			return true;;
 		}
 		case "get_ydtype"s_hash: //获取逆天类型值 原值+11
 		{
@@ -312,22 +310,23 @@ namespace script {
 				return false;
 			uint32_t index = min(param2uint(params[0]), (int)action->param_count);
 			output +=std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
+			return true;
 		}
 
 		case "get_group"s_hash: //解包指定子id的动作
 		{
 			if (params.size() == 0)
-				break;
+				return false;
 
 			//只有动作组可以解包
 			if (!info.action_def->is_group())
-				break;
+				return false;
 
 			int s = 0;
 
 			uint32_t index = param2uint(params[0]);
 			if (index >= group_ptr->size())
-				break;
+				return false;
 
 			bool firstBoolexper = true;
 			auto& action_info = (*group_ptr)[index];
