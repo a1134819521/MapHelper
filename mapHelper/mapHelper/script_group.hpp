@@ -2,11 +2,11 @@
 #include "stdafx.h"
 
 #include "json.hpp"
-#include "word_handler.hpp"
-#include "word_parser.hpp"
+#include "script_handler.hpp"
+#include "script_parser.hpp"
 
 
-namespace word {
+namespace script {
 
 	using json::Json;
 
@@ -184,7 +184,7 @@ namespace word {
 
 			m_script = std::make_shared<Handler>();
 
-			word::Parser parser(script.c_str());
+			script::Parser parser(script.c_str());
 			parser.parse(*m_script);
 
 			return true;
@@ -231,7 +231,7 @@ namespace word {
 				m_auto_param = true;
 
 				m_auto_param_script = std::make_shared<Handler>();
-				word::Parser parser(script.c_str());
+				script::Parser parser(script.c_str());
 				parser.parse(*m_auto_param_script);
 			}
 

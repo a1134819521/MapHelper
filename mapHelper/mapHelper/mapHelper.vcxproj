@@ -159,7 +159,8 @@
   <ItemGroup>
     <ClInclude Include="..\3rd\Detours\src\detours.h" />
     <ClInclude Include="..\3rd\Detours\src\detver.h" />
-    <ClInclude Include="word_group.hpp" />
+    <ClInclude Include="script.h" />
+    <ClInclude Include="script_group.hpp" />
     <ClInclude Include="ActionNode.h" />
     <ClInclude Include="BinaryWriter.h" />
     <ClInclude Include="EditorData.h" />
@@ -171,8 +172,8 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TriggerEditor.h" />
-    <ClInclude Include="word_handler.hpp" />
-    <ClInclude Include="word_parser.hpp" />
+    <ClInclude Include="script_handler.hpp" />
+    <ClInclude Include="script_parser.hpp" />
     <ClInclude Include="WorldEditor.h" />
     <ClInclude Include="YDTrigger.h" />
   </ItemGroup>
@@ -189,9 +190,11 @@
     <ClCompile Include="..\3rd\Detours\src\modules.cpp" />
     <ClCompile Include="ActionNode.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="group.cpp" />
     <ClCompile Include="inline.cpp" />
     <ClCompile Include="json.cpp" />
     <ClCompile Include="mapHelper.cpp" />
+    <ClCompile Include="script.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -9,9 +9,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "word_handler.hpp"
+#include "script_handler.hpp"
 
-namespace word {
+namespace script {
 	enum FLAG : char {
 		//value
 		PACK_L = '{',

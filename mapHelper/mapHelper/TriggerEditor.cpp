@@ -48,22 +48,6 @@ void TriggerEditor::loadTriggerConfig(TriggerConfigData* data)
 		m_typesTable[type_data->type] = type_data;
 	}
 	m_ydweTrigger = YDTrigger::getInstance();
-
-	char buffer[0x400];
-	HMODULE h = GetModuleHandleA("MapHelper.asi");
-	if (h == NULL) {
-		h = GetModuleHandleA("MapHelper.dll");
-	}
-	GetModuleFileNameA(h, buffer, 0x400);
-
-	fs::path current = buffer;
-	current.remove_filename();
-	
-	current = "D:\\MapHelper_git";
-
-	if (!group.load(current / "group.json")) {
-		std::cout << "json读取失败\n";
-	}
 }
 
 void TriggerEditor::saveTriggers(const char* path)
@@ -1708,7 +1692,7 @@ std::string TriggerEditor::convertTrigger(Trigger* trigger)
 }
 
 
-std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefPtr action_def, std::string& pre_actions)
+std::string TriggerEditor::convertActionDef(ActionNodePtr node, script::ActionDefPtr action_def, std::string& pre_actions)
 {
 	Action* action = node->getAction();
 	Parameter** parammeters = action->parameters;
@@ -1723,14 +1707,14 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 
 	uint32_t param_group_id = 0;
 
-	word::ActionInoListPtr group_ptr;
+	script::ActionInoListPtr group_ptr;
 
-	word::HandlerPtr script_ptr;
+	script::HandlerPtr script_ptr;
 
 	VarTablePtr table;
 	VarTablePtr last_table;
 
-	word::ActionDef::TYPE def_type = action_def->get_type();
+	script::ActionDef::TYPE def_type = action_def->get_type();
 
 	//如果转换的是动作组
 	if (action_def->is_group())
@@ -1780,7 +1764,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 			//}
 		}
 	}
-	else //if (def_type == word::ActionDef::ACTION)
+	else //if (def_type == script::ActionDef::ACTION)
 	{
 		ActionNodePtr branch = node->getBranchNode();
 		ActionNodePtr parent = branch->getParentNode();
@@ -1811,7 +1795,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 		}
 		script_ptr = action_def->get_script(parent_name);
 	}
-	//else if (def_type == word::ActionDef::VALUE)
+	//else if (def_type == script::ActionDef::VALUE)
 	//{
 	//
 	//}
@@ -1836,7 +1820,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 			const auto& item = values[p];
 			const auto& call = item.call;
 
-			if (item.type == word::ValueInfo::TYPE::CODE)
+			if (item.type == script::ValueInfo::TYPE::CODE)
 			{
 				//除了第一行之外，在每行开头处增加缩进
 				if (!output.empty() && p == 0)
@@ -1864,33 +1848,33 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 			}
 			else if (call) 
 			{
-				std::function <std::string(word::CallPtr call)> call_func;
+				std::function <std::string(script::CallPtr call)> call_func;
 
-				std::function <uint32_t(word::Param&)> param2uint = [&](word::Param& param) 
+				std::function <uint32_t(script::Param&)> param2uint = [&](script::Param& param) 
 				{
-					if (param.type == word::Param::TYPE::CALL)
+					if (param.type == script::Param::TYPE::CALL)
 					{
 						return (uint32_t)std::stoi(call_func(param.call));
 					}
 					return param.uint;
 				};
 
-				std::function <std::string(word::Param&)> param2string = [&](word::Param& param)
+				std::function <std::string(script::Param&)> param2string = [&](script::Param& param)
 				{
-					if (param.type == word::Param::TYPE::CALL)
+					if (param.type == script::Param::TYPE::CALL)
 					{
 						return call_func(param.call);
 					}
 					return param.string;
 				};
 
-				call_func = [&](word::CallPtr call) {
+				call_func = [&](script::CallPtr call) {
 					if (call == nullptr)
 					{
 						return std::string();
 					}
 					std::string& name = call->name;
-					std::vector<word::Param>& params = call->params;
+					std::vector<script::Param>& params = call->params;
 
 					switch (hash_(name.c_str()))
 					{
@@ -2141,13 +2125,13 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 
 		switch (line.type)
 		{
-		case word::LineInfo::TYPE::FUNCTION:
+		case script::LineInfo::TYPE::FUNCTION:
 		{
 			if (values.size() > 0)
 			{
 				const auto& value = values[0];
 				const auto& code = *(values[0].code);
-				if (value.type == word::ValueInfo::TYPE::CODE)
+				if (value.type == script::ValueInfo::TYPE::CODE)
 				{
 					if (code.find("endfunction") != std::string::npos)
 					{
@@ -2169,7 +2153,7 @@ std::string TriggerEditor::convertActionDef(ActionNodePtr node, word::ActionDefP
 			func += strline;
 			break;
 		}
-		case word::LineInfo::TYPE::ACTION:
+		case script::LineInfo::TYPE::ACTION:
 			output += strline;
 		}
 	}

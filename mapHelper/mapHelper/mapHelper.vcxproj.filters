@@ -19,6 +19,9 @@
     <Filter Include="源文件\detours">
       <UniqueIdentifier>{999b5ae1-fa36-421a-959c-dd01d86d9941}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\script">
+      <UniqueIdentifier>{284d656d-3a8a-43fe-8d2a-8de0cf7a98fa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -66,14 +69,17 @@
     <ClInclude Include="json.hpp">
       <Filter>源文件\utils</Filter>
     </ClInclude>
-    <ClInclude Include="word_handler.hpp">
-      <Filter>源文件\utils</Filter>
+    <ClInclude Include="script.h">
+      <Filter>源文件\script</Filter>
     </ClInclude>
-    <ClInclude Include="word_parser.hpp">
-      <Filter>源文件\utils</Filter>
+    <ClInclude Include="script_handler.hpp">
+      <Filter>源文件\script</Filter>
     </ClInclude>
-    <ClInclude Include="word_group.hpp">
-      <Filter>源文件\utils</Filter>
+    <ClInclude Include="script_parser.hpp">
+      <Filter>源文件\script</Filter>
+    </ClInclude>
+    <ClInclude Include="script_group.hpp">
+      <Filter>源文件\script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +139,12 @@
     </ClCompile>
     <ClCompile Include="json.cpp">
       <Filter>源文件\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="script.cpp">
+      <Filter>源文件\script</Filter>
+    </ClCompile>
+    <ClCompile Include="group.cpp">
+      <Filter>源文件\script</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

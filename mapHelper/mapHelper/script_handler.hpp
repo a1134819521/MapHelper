@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-namespace word {
+namespace script {
 	
 	typedef std::shared_ptr<struct Call> CallPtr;
 
