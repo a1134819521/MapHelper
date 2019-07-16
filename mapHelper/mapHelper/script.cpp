@@ -22,7 +22,7 @@ namespace script {
 		fs::path current = buffer;
 		current.remove_filename();
 
-		current = "E:\\MapHelper_git";
+		current = "D:\\MapHelper_git";
 
 		if (!group.load(current / "group.json")) {
 			std::cout << "json读取失败\n";
@@ -42,6 +42,7 @@ namespace script {
 		uint32_t group_id = 0;
 		ActionInoListPtr group_ptr;
 		HandlerPtr script;
+		FuncTablePtr func_table = std::make_shared<std::map<std::string, std::string>>();
 		
 		auto def_type = action_def->get_type();
 
@@ -56,7 +57,7 @@ namespace script {
 				return false;
 			}
 
-			script_info = { action_def,script ,group_ptr , group_id };
+			script_info = { script, action_def ,group_ptr ,func_table,group_id };
 			return true;
 
 		} else {
@@ -90,7 +91,7 @@ namespace script {
 			}
 			script = action_def->get_script(parent_name);
 
-			script_info = { action_def, script, group_ptr, group_id };
+			script_info = { script, action_def ,group_ptr ,func_table,group_id };
 			return true;
 		}
 
@@ -142,25 +143,20 @@ namespace script {
 
 			}
 
-			switch (line.type)
+			switch (line.type) 
 			{
-			case script::LineInfo::TYPE::FUNCTION:
+			case script::LineInfo::TYPE::FUNCTION: 
 			{
-				if (values.size() > 0)
-				{
+				if (values.size() > 0) {
 					const auto& value = values[0];
 					const auto& code = *(values[0].code);
-					if (value.type == script::ValueInfo::TYPE::CODE)
-					{
-						if (code.find("endfunction") != std::string::npos)
-						{
+					if (value.type == script::ValueInfo::TYPE::CODE) {
+						if (code.find("endfunction") != std::string::npos) {
 							ydtrigger->onActionsToFuncEnd(func, node);
 							func += strline;
 							m_func_stack--;
 							break;
-						}
-						else if (code.find("function") != std::string::npos)
-						{
+						} else if (code.find("function") != std::string::npos) {
 							func += strline;
 							ydtrigger->onActionsToFuncBegin(func, node);
 							m_func_stack++;
@@ -176,9 +172,7 @@ namespace script {
 				output += strline;
 			}
 		}
-		m_func_name.clear();
 
-	
 		pre_actions += func;
 		return true;
 	}
@@ -214,7 +208,7 @@ namespace script {
 
 		Parameter** parammeters = action->parameters;
 
-		auto editor = get_trigger_editor();
+		auto& editor = get_trigger_editor();
 
 		std::vector<script::Param>& params = call->params;
 
@@ -224,201 +218,205 @@ namespace script {
 
 		auto ydtrigger = YDTrigger::getInstance();
 
-		switch (call->name_id) 
-		{
-		case "get"s_hash: //获取参数
-		{
-			if (params.size() == 0)
+		switch (call->name_id) {
+			//获取参数
+			case "get"s_hash: {
+				if (params.size() == 0)
+					return false;
+
+				uint32_t index = min(param2uint(params[0]), action->param_count);
+				output+=editor.convertParameter(parammeters[index], node, pre_actions);
+				return true;
+			}
+
+			//获取参数类型
+			case "get_type"s_hash: {
+				if (params.size() == 0)
+					return false;
+
+				uint32_t index = min(param2uint(params[0]), action->param_count);
+				output +=editor.convertParameter(parammeters[index], node, pre_actions);
+				return true;;
+			}
+		
+			//取动作组中配置好的值
+			case "get_value"s_hash: {
+				if (params.size() == 0)
+					return false;
+
+				if (group_ptr) {
+					const std::string& key = param2string(params[0]);
+					auto& info = (*group_ptr)[group_id];
+					std::string value;
+					if (group_id < group_ptr->size() && info.get_value(key, value)) {
+						output += value;
+						return true;
+					}
+				}
 				return false;
+			}
 
-			uint32_t index = min(param2uint(params[0]), action->param_count);
-			output+=editor.convertParameter(parammeters[index], node, pre_actions);
-			return true;
-		}
-		case "get_type"s_hash: //获取参数类型
-		{
-			if (params.size() == 0)
-				return false;
+			//生成函数名
+			case "func_name"s_hash: {
+				if (params.size() == 0)
+					return false;
 
-			uint32_t index = min(param2uint(params[0]), action->param_count);
-			output +=editor.convertParameter(parammeters[index], node, pre_actions);
-			return true;;
-		}
-
-		case "get_value"s_hash: //取动作组中配置好的值
-		{
-			if (params.size() == 0)
-				return false;
-
-			if (group_ptr) {
-				const std::string& key = param2string(params[0]);
-				auto& info = (*group_ptr)[group_id];
-				std::string value;
-				if (group_id < group_ptr->size() && info.get_value(key, value)) {
-					output += value;
+				//生成 或取一个函数名
+				std::string func_index = std::to_string(param2uint(params[0]));
+				auto it = info.func_name_table->find(func_index);
+				if (it == info.func_name_table->end()) {
+					std::string name = editor.generate_function_name(node->getTriggerNamePtr());
+					info.func_name_table->emplace(func_index, name);
+					output += name;
+					return true;
+				} else {
+					output += it->second;
 					return true;
 				}
-			}
-			return false;
-		}
-		case "func_name"s_hash: //生成函数名
-		{
-			if (params.size() == 0)
 				return false;
+			}
 
-			//生成 或取一个函数名
-			std::string func_index = std::to_string(param2uint(params[0]));
-			auto it = m_func_name.find(func_index);
-			if (it == m_func_name.end()) {
-				std::string name = editor.generate_function_name(node->getTriggerNamePtr());
-				m_func_name[func_index] = name;
-				output += name;
+			//转换参数值为循环遍历名
+			case "loop_name"s_hash: {
+				if (params.size() == 0)
+					return false;
+				//如果是取参数转换为循环变量名的话
+				uint32_t index = param2uint(params[0]);
+				if (index == -1) break;
+				index = min(index, action->param_count);
+				std::string name = "ydul_" + editor.convertParameter(parammeters[index], node, pre_actions);
+				convert_loop_var_name(name);
+				output +=name;
+				return false;
+			}
+
+			//获取返回类型
+			case "get_return_type"s_hash: {
+				return false;
+			}
+
+			//注册局部变量
+			case "add_local"s_hash: {
+				if (params.size() < 2)
+					return false;
+				localTable.emplace(params[0].string, params[1].string);
+				return true;;
+			}
+
+			//获取逆天类型值 原值+11
+			case "get_ydtype"s_hash: {
+				if (params.size() == 0)
+					return false;
+				uint32_t index = min(param2uint(params[0]), (int)action->param_count);
+				output +=std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
 				return true;
-			} else {
-				output += it->second;
-				return true;
 			}
-			return false;
-		}
-		case "loop_name"s_hash: //转换参数值为循环遍历名
-		{
-			if (params.size() == 0)
-				return false;
-			//如果是取参数转换为循环变量名的话
-			uint32_t index = param2uint(params[0]);
-			if (index == -1) break;
-			index = min(index, action->param_count);
-			std::string name = "ydul_" + editor.convertParameter(parammeters[index], node, pre_actions);
-			convert_loop_var_name(name);
-			output +=name;
-			return false;
-		}
-		case "get_return_type"s_hash: //获取返回类型
-		{
-			return false;
-		}
-		case "add_local"s_hash: //注册局部变量
-		{
-			if (params.size() < 2)
-				return false;
-			localTable.emplace(params[0].string, params[1].string);
-			return true;;
-		}
-		case "get_ydtype"s_hash: //获取逆天类型值 原值+11
-		{
-			if (params.size() == 0)
-				return false;
-			uint32_t index = min(param2uint(params[0]), (int)action->param_count);
-			output +=std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
-			return true;
-		}
+			//解包指定子id的动作
+			case "get_group"s_hash: {
+				if (params.size() == 0)
+					return false;
 
-		case "get_group"s_hash: //解包指定子id的动作
-		{
-			if (params.size() == 0)
-				return false;
+				//只有动作组可以解包
+				if (!info.action_def->is_group())
+					return false;
 
-			//只有动作组可以解包
-			if (!info.action_def->is_group())
-				return false;
+				int s = 0;
 
-			int s = 0;
+				uint32_t index = param2uint(params[0]);
+				if (index >= group_ptr->size())
+					return false;
 
-			uint32_t index = param2uint(params[0]);
-			if (index >= group_ptr->size())
-				return false;
+				bool firstBoolexper = true;
+				auto& action_info = (*group_ptr)[index];
 
-			bool firstBoolexper = true;
-			auto& action_info = (*group_ptr)[index];
+				std::vector<ActionNodePtr> list;
 
-			std::vector<ActionNodePtr> list;
+				node->getChildNodeList(list);
 
-			node->getChildNodeList(list);
-
-			space_stack++;
-			if (m_func_stack > 0) {
-				s = space_stack;
-				space_stack = 1;
-			}
-			std::string result;
-			for (size_t i = 0; i < list.size(); i++) {
-				auto& child = list[i];
-				Action* childAction = child->getAction();
-
-				uint32_t child_id = child->getActionId();
-
-				auto type = child->getActionType();
-
-				//生成动作
-				if (index != child_id || child_id >= group_ptr->size()) {
-					continue;
+				space_stack++;
+				if (m_func_stack > 0) {
+					s = space_stack;
+					space_stack = 1;
 				}
-				if (type != Action::Type::condition) {
-					if (action_info.is_child)
-						result += spaces[space_stack];
-					else
-						result += spaces[space_stack - 1];
-				}
+				std::string result;
+				for (size_t i = 0; i < list.size(); i++) {
+					auto& child = list[i];
+					Action* childAction = child->getAction();
 
-				//事件需要默认一个参数
-				if (type == Action::Type::event) {
-					if (child->getNameId() == "MapInitializationEvent"s_hash) {
+					uint32_t child_id = child->getActionId();
+
+					auto type = child->getActionType();
+
+					//生成动作
+					if (index != child_id || child_id >= group_ptr->size()) {
 						continue;
 					}
-					ydtrigger->onRegisterEvent(result, child);
-
-					result += "call " + editor.getBaseName(child) + "(";
-
-					std::string value;
-					auto& info = (*group_ptr)[index];
-					if (!info.get_value("handle", value)) {
-						value = "null";
+					if (type != Action::Type::condition) {
+						if (action_info.is_child)
+							result += spaces[space_stack];
+						else
+							result += spaces[space_stack - 1];
 					}
-					result += value;
 
-					for (size_t k = 0; k < childAction->param_count; k++) {
-						result += ", ";
-						result += editor.convertParameter(childAction->parameters[k], child, pre_actions);
-					}
-					result += ")\n";
-					ydtrigger->onRegisterEvent2(result, child);
-
-				} else if (type == Action::Type::condition) {
-					std::string value;
-
-					if (firstBoolexper) {
-						firstBoolexper = false;
-					} else {
-						if (!action_info.get_value("Compare", value)) {
-							value = "and";
+					//事件需要默认一个参数
+					if (type == Action::Type::event) {
+						if (child->getNameId() == "MapInitializationEvent"s_hash) {
+							continue;
 						}
-						value = " " + value + " ";
-					}
-					result += value;
-					result += "(" + editor.convertAction(child, pre_actions, true) + ")";
-				} else {
-					result += editor.convertAction(child, pre_actions, false);
-					if (result.size() > 0 && result[result.size() - 1] != '\n') {
-						result += "\n";
+						ydtrigger->onRegisterEvent(result, child);
+
+						result += "call " + editor.getBaseName(child) + "(";
+
+						std::string value;
+						auto& info = (*group_ptr)[index];
+						if (!info.get_value("handle", value)) {
+							value = "null";
+						}
+						result += value;
+
+						for (size_t k = 0; k < childAction->param_count; k++) {
+							result += ", ";
+							result += editor.convertParameter(childAction->parameters[k], child, pre_actions);
+						}
+						result += ")\n";
+						ydtrigger->onRegisterEvent2(result, child);
+
+					} else if (type == Action::Type::condition) {
+						std::string value;
+
+						if (firstBoolexper) {
+							firstBoolexper = false;
+						} else {
+							if (!action_info.get_value("Compare", value)) {
+								value = "and";
+							}
+							value = " " + value + " ";
+						}
+						result += value;
+						result += "(" + editor.convertAction(child, pre_actions, true) + ")";
+					} else {
+						result += editor.convertAction(child, pre_actions, false);
+						if (result.size() > 0 && result[result.size() - 1] != '\n') {
+							result += "\n";
+						}
 					}
 				}
-			}
-			if (action_info.type_id == Action::Type::condition && firstBoolexper) {
-				result += "true";
-			}
+				if (action_info.type_id == Action::Type::condition && firstBoolexper) {
+					result += "true";
+				}
 
-			if (s > 0) {
-				space_stack = s;
-			}
-			space_stack--;
+				if (s > 0) {
+					space_stack = s;
+				}
+				space_stack--;
 
-			//如果是自动传参的动作组 并且解包的是 参数代码
-			if (info.action_def->is_auto_param() && !action_info.is_child) {
+				//如果是自动传参的动作组 并且解包的是 参数代码
+				if (info.action_def->is_auto_param() && !action_info.is_child) {
 
+				}
+				output +=result;
+				return true;
 			}
-			output +=result;
-			return true;
-		}
 		}
 
 		return false;

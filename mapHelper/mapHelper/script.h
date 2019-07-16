@@ -7,11 +7,13 @@
 #include "script_group.hpp"
 
 namespace script {
+	typedef std::shared_ptr<std::map<std::string, std::string>> FuncTablePtr;
 
 	struct ScriptInfo {
-		ActionDefPtr action_def;
 		HandlerPtr script;
+		ActionDefPtr action_def;
 		ActionInoListPtr group;
+		FuncTablePtr func_name_table;
 		uint32_t group_id;
 	};
 	
@@ -33,8 +35,6 @@ namespace script {
 		bool m_init;
 
 		int m_func_stack;
-
-		std::map<std::string, std::string> m_func_name;
 
 	public:
 		ActionGroup group;
