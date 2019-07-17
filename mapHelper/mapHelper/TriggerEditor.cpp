@@ -1720,13 +1720,14 @@ std::string TriggerEditor::convertAction(ActionNodePtr node, std::string& pre_ac
 
 	script::ScriptInfo info;
 
-
 	if (converter.find_script(node,*node->getName(),info))
 	{
-		std::string output;
-		if (converter.execute(node, output, pre_actions, info)) 
+		info.node = node;
+		info.pre_actions = &pre_actions;
+		script::Value result;
+		if (converter.execute(info, result))
 		{
-			return output;
+			return result.string;
 		}
 	}
 
@@ -1805,6 +1806,11 @@ std::string TriggerEditor::convertParameter(Parameter* parameter, ActionNodePtr 
 	{
 		return "";
 	}
+
+	auto& converter = script::get_converter();
+
+
+
 	if (m_ydweTrigger->isEnable())
 	{
 		std::string output;
@@ -1819,6 +1825,21 @@ std::string TriggerEditor::convertParameter(Parameter* parameter, ActionNodePtr 
 	if (parameter->funcParam) 
 	{
 		auto childNode{ std::make_shared<ActionNode>(parameter->funcParam, parameter, node) };
+
+		script::ScriptInfo info;
+
+		if (converter.find_script(childNode, *childNode->getName(), info))
+		{
+			info.node = childNode;
+			info.parameter = parameter;
+			info.pre_actions = &pre_actions;
+			script::Value result;
+			if (converter.execute(info, result))
+			{
+				return result.string;
+			}
+		}
+
 		return convertCall(childNode,pre_actions, add_call);
 	}
 	auto value = std::string(parameter->value);

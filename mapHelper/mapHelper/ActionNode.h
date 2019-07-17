@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "EditorData.h"
+#include "script_handler.hpp"
 
 //动作节点
 
@@ -10,7 +11,8 @@
 
 typedef std::shared_ptr<class ActionNode> ActionNodePtr;
 
-typedef std::shared_ptr<std::map<std::string, std::string>> VarTablePtr;
+typedef std::shared_ptr<std::map<std::string, script::Value>> VarTablePtr;
+typedef std::shared_ptr<std::map<std::string, std::string>> LocalTablePtr;
 
 class ActionNode :public std::enable_shared_from_this<ActionNode>
 {
@@ -82,7 +84,7 @@ public:
 
 	VarTablePtr getLastVarTable();
 
-	VarTablePtr getLocalTable();
+	LocalTablePtr getLocalTable();
 
 
 	bool m_haveHashLocal;
@@ -105,7 +107,7 @@ protected:
 	Type m_type;
 
 	//用来记录多层次逆天计时器的局部变量 以便再上一层函数中申明
-	std::shared_ptr<std::map<std::string, std::string>> m_hashVarTablePtr;
+	VarTablePtr m_hashVarTablePtr;
 
 	//记录局部变量的map指针
 	std::shared_ptr<std::map<std::string, std::string>> m_localTablePtr;

@@ -197,6 +197,10 @@ namespace script {
 				std::cout << "¶ÁÈ¡ScriptsÊ§°Ü\n";
 				return false;
 			}
+			Json jbool = json["AutoParam"];
+			if (jbool.is_bool()) {
+				m_auto_param = jbool.bool_value();
+			}
 			return true;
 		}
 
@@ -228,11 +232,15 @@ namespace script {
 				}
 				script.pop_back();
 
+		
 				m_auto_param = true;
 
 				m_auto_param_script = std::make_shared<Handler>();
 				script::Parser parser(script.c_str());
-				parser.parse(*m_auto_param_script);
+				if (!parser.parse(*m_auto_param_script)) {
+					std::cout << "AutoParam½Å±¾½âÎöÊ§°Ü\n";
+					return false;
+				}
 			}
 
 			return true;

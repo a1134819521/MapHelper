@@ -7,23 +7,25 @@
 namespace script {
 	
 	typedef std::shared_ptr<struct Call> CallPtr;
-
-	struct Param {
+	typedef std::shared_ptr<struct Bind> BindPtr;
+	struct Value {
 		enum TYPE {
+			NONE,
 			UINT,
 			STRING,
 			CALL,
+			BIND
 		};
-		TYPE type;
+		TYPE type = NONE;
 		uint32_t uint;
 		std::string string;
-		 
 		CallPtr call;
+		BindPtr bind;
 	};
 	struct Call {
 		uint32_t name_id;
 		std::string name;
-		std::vector<Param> params;
+		std::vector<Value> params;
 	};
 
 	struct ValueInfo {
@@ -43,6 +45,12 @@ namespace script {
 		};
 		TYPE type; 
 		std::vector<ValueInfo> values;
+	};
+
+
+	struct Bind {
+		std::string name;
+		std::vector<Value> params;
 	};
 
 	struct Handler {

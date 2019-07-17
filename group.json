@@ -3,6 +3,7 @@
         "关于script中使用的符号说明",
         "# 前缀为新函数",
         "{get(0)} 取参数值 0为参数索引",
+        "{to_string(get(0))} 给参数0的值加上双引号",
         "{get_value(name)} 按照动作位置取参数值",
         "{func_name(1)} 生成函数名 可以多个不同名字 {func_name(1)} {func_name(2)} ",
         "{loop_name(0)} 转换第0个参数值为循环变量名  中文循环变量需要特殊处理",
@@ -10,6 +11,10 @@
         "{get_type(0)} 取参数类型 0为参数索引",
         "{get_ydtype(0)} 取指逆天类型值 0为参数索引 逆天类型 需要特殊处理 原值+11",
         "{get_group(0)} 解包动作组 0为动作组索引",
+        "{bind(name,args...)} 参数捆绑 将动作名 跟参数打包成对象",
+        "{map_set(key,obj)} 按key储存数据",
+        "{map_get(key)} 按key 读取数据",
+        "{map_each()} 返回所有数据 并清空",
 
         "Type 为动作类型",
         "Group 是动作组 指多个动作 或多条件 多事件等",
@@ -28,26 +33,26 @@
 
     "YDWESetAnyTypeLocalVariable" : {
         "Type" : "Action",
-        
+        "AutoParam" : true,
         "Scripts" : {
             "default" : [
-                "call YDLocal2Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
+                "call YDLocal2Set({get_ydtype(0)},{to_string(get(1))},{get(2)})"
             ],
 
             "trigger" : [
-                "call YDLocal1Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
+                "call YDLocal1Set({get_ydtype(0)},{to_string(get(1))},{get(2)})"
             ],
 
             "YDWEExecuteTriggerMultiple" : [
-                "call YDLocal5Set({get_ydtype(0)},\"{get(1)}\",{get(2)})"
+                "call YDLocal5Set({get_ydtype(0)},{to_string(get(1))},{get(2)})"
             ],
 
             "YDWETimerStartMultiple" : [
-                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\",{get(2)})"
+                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},{to_string(get(1))},{get(2)})"
             ],
 
             "YDWERegisterTriggerMultiple" : [
-                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\",{get(2)})"
+                "call YDLocalSet({get_value(handle)},{get_ydtype(0)},{to_string(get(1))},{get(2)})"
             ]
         }
     },
@@ -59,27 +64,27 @@
     "YDWEGetAnyTypeLocalVariable" : {
         "Type" : "Value",
         "AutoParam" : [
-            "{save(YDWESetAnyTypeLocalVariable,get_ydtype(0),get(1),load(YDWEGetAnyTypeLocalVariable,get_ydtype(0),get(1))}"
+            "{map_set(get(0),bind(YDWESetAnyTypeLocalVariable,get_return_type(),to_string(get(0)),bind(YDWEGetAnyTypeLocalVariable,get_return_type(),to_string(get(0)))))}"
         ],
         "Scripts" : {
             "default" : [
-                "YDLocal2Get({get_ydtype(0)},\"{get(1)}\")"
+                "YDLocal2Get({get_return_type()},{tostring(get(0))})"
             ],
 
             "trigger" : [
-                "YDLocal1Get({get_ydtype(0)},\"{get(1)}\")"
+                "YDLocal1Get({get_return_type()},{to_string(get(0))})"
             ],
 
             "YDWEExecuteTriggerMultiple" : [
-                "YDLocal5Get({get_ydtype(0)},\"{get(1)}\")"
+                "YDLocal5Get({get_return_type()},{to_string(get(0))})"
             ],
 
             "YDWETimerStartMultiple" : [
-                "YDLocalGet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\")"
+                "YDLocalGet({get_value(handle)},{get_return_type()},{to_string(get(0))})"
             ],
 
             "YDWERegisterTriggerMultiple" : [
-                "YDLocalGet({get_value(handle)},{get_ydtype(0)},\"{get(1)}\")"
+                "YDLocalGet({get_value(handle)},{get_return_type()},{to_string(get(0))})"
             ]
         }
     },
@@ -321,6 +326,7 @@
             "{add_local(ydl_timer,timer)}",
             "set ydl_timer = {get(0)}",
             "{get_group(0)}",
+            "{map_each()}",
             "call TimerStart(ydl_timer,{get(1)},{get(2)},function {func_name(1)})"
         ]
     },

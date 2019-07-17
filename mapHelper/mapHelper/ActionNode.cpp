@@ -255,7 +255,7 @@ VarTablePtr ActionNode::getVarTable()
 {
 	if (m_hashVarTablePtr.get() == nullptr)
 	{
-		m_hashVarTablePtr = VarTablePtr(new std::map<std::string, std::string>);
+		m_hashVarTablePtr = VarTablePtr(new std::map<std::string,script::Value>);
 	}
 	return m_hashVarTablePtr;
 }
@@ -284,7 +284,7 @@ VarTablePtr ActionNode::getLastVarTable()
 				&&  (node->isRootNode() || (def_ptr && def_ptr->is_auto_param() && def_ptr->is_group()) )
 				)
 			{
-				retval = VarTablePtr(new std::map<std::string, std::string>);
+				retval = VarTablePtr(new std::map<std::string, script::Value>);
 				node->m_hashVarTablePtr = retval;
 				break;
 			}
@@ -294,18 +294,18 @@ VarTablePtr ActionNode::getLastVarTable()
 
 	if (retval.get() == nullptr)
 	{
-		retval = VarTablePtr(new std::map<std::string, std::string>);
+		retval = VarTablePtr(new std::map<std::string, script::Value>);
 		m_hashVarTablePtr = retval;
 	}
 
 	return retval;
 }
 
-VarTablePtr ActionNode::getLocalTable()
+LocalTablePtr ActionNode::getLocalTable()
 {
 	if (m_localTablePtr.get() == nullptr)
 	{
-		m_localTablePtr = VarTablePtr(new std::map<std::string, std::string>);
+		m_localTablePtr = LocalTablePtr(new std::map<std::string, std::string>);
 	}
 	return m_localTablePtr;
 }

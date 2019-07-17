@@ -22,7 +22,7 @@ namespace script {
 		fs::path current = buffer;
 		current.remove_filename();
 
-		current = "D:\\MapHelper_git";
+		current = "E:\\MapHelper_git";
 
 		if (!group.load(current / "group.json")) {
 			std::cout << "json读取失败\n";
@@ -32,12 +32,14 @@ namespace script {
 		return true;
 	}
 
-	bool Converter::find_script(ActionNodePtr node, const std::string& name, ScriptInfo& script_info) {
+	bool Converter::find_script(ActionNodePtr node, const std::string& name, ScriptInfo& info) {
 
 		ActionDefPtr action_def = group.get_action_def(name);
 		if (!action_def) {
 			return false;
 		}
+
+		
 
 		uint32_t group_id = 0;
 		ActionInoListPtr group_ptr;
@@ -49,6 +51,8 @@ namespace script {
 		//如果是动作组 则返回动作组的脚本模板
 		if (def_type == ActionDef::TYPE::GROUP) {
 
+			auto table = node->getVarTable();
+
 			group_ptr = action_def->get_group();
 
 			script = action_def->get_group_script();
@@ -57,7 +61,7 @@ namespace script {
 				return false;
 			}
 
-			script_info = { script, action_def ,group_ptr ,func_table,group_id };
+			info = { script, action_def ,group_ptr ,group_id,name, func_table };
 			return true;
 
 		} else {
@@ -71,8 +75,7 @@ namespace script {
 			if (action_def->is_auto_param()) {
 				if (!parent || parent->isRootNode()) {//如果是在触发中
 					parent_name = "trigger";
-				}
-				else {
+				} else {
 					ActionNodePtr ptr = branch;
 
 					//否则搜素上一层带传参的父节点
@@ -80,9 +83,11 @@ namespace script {
 						ActionNodePtr parent_ptr = ptr->getParentNode();
 						auto parent_def_ptr = group.get_action_def(*parent_ptr->getName());
 						if (parent_def_ptr && parent_def_ptr->is_auto_param()) {
+
 							group_id = ptr->getActionId();
 							group_ptr = parent_def_ptr->get_group();
 							parent_name = parent_ptr->getName()->c_str();
+
 							break;
 						}
 						ptr = parent_ptr;
@@ -91,29 +96,55 @@ namespace script {
 			}
 			script = action_def->get_script(parent_name);
 
-			script_info = { script, action_def ,group_ptr ,func_table,group_id };
+			info = { script, action_def ,group_ptr ,group_id, parent_name, func_table };
 			return true;
 		}
 
 		return false;
 	}
 
-	bool Converter::execute(ActionNodePtr node, std::string& output, std::string& pre_actions, ScriptInfo& info)
-	{
+	
 
+	bool Converter::execute(ScriptInfo& info, Value& result)
+	{
+		ActionNodePtr& node = info.node;
+		std::string& pre_actions = *info.pre_actions;
+		std::string& output = result.string;
 		if (!info.script)
 			return false;
 
 		auto ydtrigger = YDTrigger::getInstance();
 
 		std::string func;
+		auto script = info.script;
 
-		auto& lines = info.script->lines;
+		ActionDefPtr action_def = info.action_def;
+		if (action_def->is_auto_param() && action_def->get_type() == ActionDef::TYPE::VALUE) {
+			auto auto_script = action_def->get_auto_script();
+			if (auto_script) {
+				info.script = auto_script;
+				Value value;
+				const auto& lines = auto_script->lines;
+				for (size_t l = 0; l < lines.size(); l++) {
+					const auto& line = lines[l];
+					const auto& values = line.values;
+					for (size_t p = 0; p < values.size(); p++) {
+						const auto& item = values[p];
+						if (item.type == ValueInfo::CALL) {
+							call_func(item.call, info, value);
+						}
+					}
+				}
+			}
+		}
+
+
+		const auto& lines = script->lines;
 
 		for (size_t l = 0; l < lines.size(); l++) {
 			const auto& line = lines[l];
 
-			auto& values = line.values;
+			const auto& values = line.values;
 
 			std::string strline;
 
@@ -138,7 +169,10 @@ namespace script {
 					}
 					strline += code;
 				} else {
-					call_func(item.call, info, node,strline, pre_actions);
+					Value ret;
+					if (call_func(item.call, info, ret)) {
+						strline += ret.string;
+					}
 				}
 
 			}
@@ -173,36 +207,51 @@ namespace script {
 			}
 		}
 
+		
 		pre_actions += func;
 		return true;
 	}
 
 
-	bool Converter::call_func(CallPtr call,ScriptInfo& info,ActionNodePtr node, std::string& output, std::string& pre_actions) {
+	bool Converter::call_func(CallPtr call,ScriptInfo& info, Value& result) {
+
+		ActionNodePtr& node = info.node;
+		std::string& pre_actions = *info.pre_actions;
 
 		if (!call) {
 			return false;
 		}
 
-		std::function <uint32_t(script::Param&)> param2uint = [&](script::Param& param) {
-			if (param.type == script::Param::TYPE::CALL) {
-				std::string result;
-				if (call_func(param.call, info, node, result, pre_actions)) {
-					return (uint32_t)std::stoi(result);
+		std::function <uint32_t(script::Value&)> param2uint = [&](script::Value& param) {
+			if (param.type == script::Value::TYPE::CALL) {
+				Value result;
+				if (call_func(param.call, info, result)) {
+					return result.uint;
 				}
 			}
 			return param.uint;
 		};
 
-		std::function <std::string(script::Param&)> param2string = [&](script::Param& param) {
-			if (param.type == script::Param::TYPE::CALL) {
-				std::string result;
-				if (call_func(param.call, info, node, result, pre_actions)) {
-					return result;
+		std::function <std::string(script::Value&)> param2string = [&](script::Value& param) {
+			if (param.type == script::Value::TYPE::CALL) {
+				Value result;
+				if (call_func(param.call, info, result)) {
+					return result.string;
 				}
 			}
 			return param.string;
 		};
+
+		std::function <BindPtr(script::Value&)> param2bind = [&](script::Value& param) {
+			if (param.type == script::Value::TYPE::CALL) {
+				Value result;
+				if (call_func(param.call, info, result)) {
+					return result.bind;
+				}
+			}
+			return param.bind;
+		};
+
 
 		Action* action = node->getAction();
 
@@ -210,7 +259,7 @@ namespace script {
 
 		auto& editor = get_trigger_editor();
 
-		std::vector<script::Param>& params = call->params;
+		std::vector<script::Value>& params = call->params;
 
 		ActionInoListPtr& group_ptr = info.group;
 
@@ -219,13 +268,23 @@ namespace script {
 		auto ydtrigger = YDTrigger::getInstance();
 
 		switch (call->name_id) {
+			
+			//加上双引号后返回
+			case "to_string"s_hash: {
+				result.string = "\"" + param2string(params[0]) + "\"";
+				result.type = Value::STRING;
+				return true;
+			}
+
 			//获取参数
 			case "get"s_hash: {
 				if (params.size() == 0)
 					return false;
 
 				uint32_t index = min(param2uint(params[0]), action->param_count);
-				output+=editor.convertParameter(parammeters[index], node, pre_actions);
+				result.string = editor.convertParameter(parammeters[index], node, pre_actions);
+				result.type = Value::STRING;
+
 				return true;
 			}
 
@@ -235,7 +294,9 @@ namespace script {
 					return false;
 
 				uint32_t index = min(param2uint(params[0]), action->param_count);
-				output +=editor.convertParameter(parammeters[index], node, pre_actions);
+				result.string = editor.convertParameter(parammeters[index], node, pre_actions);
+				result.type = Value::STRING;
+
 				return true;;
 			}
 		
@@ -249,7 +310,9 @@ namespace script {
 					auto& info = (*group_ptr)[group_id];
 					std::string value;
 					if (group_id < group_ptr->size() && info.get_value(key, value)) {
-						output += value;
+						result.string = value;
+						result.type = Value::STRING;
+
 						return true;
 					}
 				}
@@ -267,13 +330,12 @@ namespace script {
 				if (it == info.func_name_table->end()) {
 					std::string name = editor.generate_function_name(node->getTriggerNamePtr());
 					info.func_name_table->emplace(func_index, name);
-					output += name;
-					return true;
+					result.string = name;
 				} else {
-					output += it->second;
-					return true;
+					result.string = it->second;
 				}
-				return false;
+				result.type = Value::STRING;
+				return true;
 			}
 
 			//转换参数值为循环遍历名
@@ -286,13 +348,21 @@ namespace script {
 				index = min(index, action->param_count);
 				std::string name = "ydul_" + editor.convertParameter(parammeters[index], node, pre_actions);
 				convert_loop_var_name(name);
-				output +=name;
-				return false;
+
+				result.string = name;
+				result.type = Value::STRING;
+
+				return true;
 			}
 
 			//获取返回类型
 			case "get_return_type"s_hash: {
-				return false;
+				if (!info.parameter)
+					return false;
+				result.string = info.parameter->type_name;
+				result.type = Value::STRING;
+
+				return true;
 			}
 
 			//注册局部变量
@@ -300,7 +370,8 @@ namespace script {
 				if (params.size() < 2)
 					return false;
 				localTable.emplace(params[0].string, params[1].string);
-				return true;;
+
+				return true;
 			}
 
 			//获取逆天类型值 原值+11
@@ -308,9 +379,14 @@ namespace script {
 				if (params.size() == 0)
 					return false;
 				uint32_t index = min(param2uint(params[0]), (int)action->param_count);
-				output +=std::string(parammeters[index]->value + 11); //typename_01_integer + 11 = integer
+
+				//typename_01_integer + 11 = integer
+				result.string = std::string(parammeters[index]->value + 11);
+				result.type = Value::STRING;
+
 				return true;
 			}
+
 			//解包指定子id的动作
 			case "get_group"s_hash: {
 				if (params.size() == 0)
@@ -320,25 +396,29 @@ namespace script {
 				if (!info.action_def->is_group())
 					return false;
 
-				int s = 0;
-
 				uint32_t index = param2uint(params[0]);
 				if (index >= group_ptr->size())
 					return false;
 
-				bool firstBoolexper = true;
 				auto& action_info = (*group_ptr)[index];
 
 				std::vector<ActionNodePtr> list;
-
 				node->getChildNodeList(list);
+
+				bool firstBoolexper = true;
+				int s = 0;
 
 				space_stack++;
 				if (m_func_stack > 0) {
 					s = space_stack;
 					space_stack = 1;
 				}
-				std::string result;
+
+				auto last_table = node->getLastVarTable();
+				auto table = node->getVarTable();
+
+				std::string str;
+
 				for (size_t i = 0; i < list.size(); i++) {
 					auto& child = list[i];
 					Action* childAction = child->getAction();
@@ -353,9 +433,9 @@ namespace script {
 					}
 					if (type != Action::Type::condition) {
 						if (action_info.is_child)
-							result += spaces[space_stack];
+							str += spaces[space_stack];
 						else
-							result += spaces[space_stack - 1];
+							str += spaces[space_stack - 1];
 					}
 
 					//事件需要默认一个参数
@@ -363,23 +443,23 @@ namespace script {
 						if (child->getNameId() == "MapInitializationEvent"s_hash) {
 							continue;
 						}
-						ydtrigger->onRegisterEvent(result, child);
+						ydtrigger->onRegisterEvent(str, child);
 
-						result += "call " + editor.getBaseName(child) + "(";
+						str += "call " + editor.getBaseName(child) + "(";
 
 						std::string value;
 						auto& info = (*group_ptr)[index];
 						if (!info.get_value("handle", value)) {
 							value = "null";
 						}
-						result += value;
+						str += value;
 
 						for (size_t k = 0; k < childAction->param_count; k++) {
-							result += ", ";
-							result += editor.convertParameter(childAction->parameters[k], child, pre_actions);
+							str += ", ";
+							str += editor.convertParameter(childAction->parameters[k], child, pre_actions);
 						}
-						result += ")\n";
-						ydtrigger->onRegisterEvent2(result, child);
+						str += ")\n";
+						ydtrigger->onRegisterEvent2(str, child);
 
 					} else if (type == Action::Type::condition) {
 						std::string value;
@@ -392,19 +472,19 @@ namespace script {
 							}
 							value = " " + value + " ";
 						}
-						result += value;
-						result += "(" + editor.convertAction(child, pre_actions, true) + ")";
+						str += value;
+						str += "(" + editor.convertAction(child, pre_actions, true) + ")";
 					} else {
-						result += editor.convertAction(child, pre_actions, false);
-						if (result.size() > 0 && result[result.size() - 1] != '\n') {
-							result += "\n";
+						str += editor.convertAction(child, pre_actions, false);
+						if (str.size() > 0 && str[str.size() - 1] != '\n') {
+							str += "\n";
 						}
 					}
 				}
 				if (action_info.type_id == Action::Type::condition && firstBoolexper) {
-					result += "true";
+					str += "true";
 				}
-
+				
 				if (s > 0) {
 					space_stack = s;
 				}
@@ -414,12 +494,191 @@ namespace script {
 				if (info.action_def->is_auto_param() && !action_info.is_child) {
 
 				}
-				output +=result;
+				result.string = str;
+				result.type = Value::STRING;
+				return true;
+			}
+			 
+			//bind(name, args...) 参数捆绑 将动作名 跟参数打包成对象",
+			case "bind"s_hash: {
+				if (params.size() == 0)
+					return false;
+				if (params[0].type != Value::TYPE::STRING)
+					return false;
+				
+				result.bind = std::make_shared<struct Bind>();
+				result.type = Value::TYPE::BIND;
+				result.bind->name = param2string(params[0]);
+				for (size_t i = 1; i < params.size(); i++) {
+					Value& param = params[i];
+					if (param.type == Value::TYPE::CALL) {
+						Value value;
+						if (call_func(param.call, info, value)) {
+							result.bind->params.push_back(value);
+						}
+					}
+					else {
+						result.bind->params.push_back(param);
+					}
+				}
+				return true;
+			}
+
+			//case "bind"s_hash: {
+			//	if (params.size() == 0)
+			//		return false;
+			//
+			//	if (params[0].type != Value::TYPE::BIND)
+			//		return false;
+			//
+			//	return call_bind(params[0].bind, info, result);
+			//};
+
+			case "map_set"s_hash: {
+				if (params.size() != 2)
+					return false;
+
+				std::string key = param2string(params[0]);
+
+				auto last_table = node->getLastVarTable();
+
+
+				BindPtr bind = param2bind(params[1]);
+				if (bind) {
+					Value value;
+					value.type = Value::TYPE::BIND;
+					value.bind = bind;
+					last_table->emplace(key, value);
+				}
+			
+				
+				
+				return true;
+			}
+			
+			case "map_get"s_hash: {
+				if (params.size() == 0)
+					return false;
+
+				std::string key = param2string(params[0]);
+				auto last_table = node->getLastVarTable();
+				auto it = last_table->find(key);
+				if (it == last_table->end()) {
+					return false;
+				}
+				Value& value = it->second;
+				std::string& str = result.string;
+
+				str += spaces[space_stack];
+
+				if (value.type == Value::TYPE::BIND) {
+					return call_bind(params[0].bind, info, result);
+				}
+				else if (value.type == Value::TYPE::STRING) {
+					str += value.string;
+				}
+				else if (value.type == Value::TYPE::UINT) {
+					str += std::to_string(value.uint);
+				} else {
+					if (value.type == Value::TYPE::CALL) {
+						//call_bind(params[0].bind, info, result);
+					}
+					//str += param2string(value);
+				}
+
+				result.type = Value::STRING;
+				return true;
+			}
+
+			case "map_each"s_hash: {
+				auto last_table = node->getLastVarTable();
+				auto table = node->getVarTable();
+				std::string& str = result.string;
+
+				for (auto&[k, value] : *last_table) {
+					str += spaces[space_stack];
+
+					if (value.type == Value::TYPE::BIND) {
+						Value ret;
+						if (call_bind(value.bind, info, ret)) {
+							str += ret.string;
+						}
+					}
+					else if (value.type == Value::TYPE::STRING) {
+						str += value.string;
+					}
+					else if (value.type == Value::TYPE::UINT) {
+						str += std::to_string(value.uint);
+					}
+					else if (value.type == Value::TYPE::CALL) {
+						str += param2string(value);
+					}
+					str += "\n";
+					table->emplace(k, value);
+				}
+				if (!str.empty()) {
+					str.pop_back();
+				}
+				result.type = Value::STRING;
 				return true;
 			}
 		}
-
 		return false;
+	}
+
+
+	bool Converter::call_bind(BindPtr bind,ScriptInfo& info, Value& result) {
+		if (!bind) {
+			return false;
+		}
+
+		auto action_def = group.get_action_def(bind->name);
+		if (!action_def) {
+			return false;
+		}
+			
+		if (action_def->get_type() == ActionDef::TYPE::GROUP) {
+			return false;
+		}
+		
+		auto script = action_def->get_script(info.parent_name);
+		if (!script) {
+			return false;
+		}
+
+		const auto& lines = script->lines;
+
+		std::string& output = result.string;
+
+		const auto& params = bind->params;
+		uint32_t count = 0;
+
+		for (size_t i = 0; i < lines.size(); i++) {
+			const auto& line = lines[i];
+			const auto& values = line.values;
+
+			for (size_t n = 0; n < values.size(); n++) {
+				const auto& value = values[n];
+				if (value.type == ValueInfo::CODE) {
+					output += *value.code;
+				} else {
+					if (count < params.size()) {
+						const Value& value = params[count];
+						if (value.type == Value::TYPE::BIND) {
+							Value ret;
+							if (call_bind(value.bind, info, ret)) {
+								output += ret.string;
+							}
+						} else {
+							output += value.string;
+						}
+						count++;
+					}
+				}
+			}
+		}
+		result.type = Value::TYPE::STRING;
+		return true;
 	}
 
 	Converter& get_converter()

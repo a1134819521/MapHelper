@@ -180,31 +180,31 @@ namespace script {
 				return false;
 			}
 			call->name = name;
-
+			call->name_id = hash_(name.c_str());
 			return true;
 		}
-		bool parse_args(Handler& h, std::vector<Param>& params) {
+		bool parse_args(Handler& h, std::vector<Value>& params) {
 			if (!consume(z, FLAG::PL)) {
 				return false;
 			}
 			std::string name;
 			while (!equal(z, '\0')) {
 				parse_ignore_whitespace();
-				Param param;
+				Value param;
 				if (parse_uint(h, param.uint)) {
-					param.type = Param::TYPE::UINT;
+					param.type = Value::TYPE::UINT;
 					params.push_back(param);
 				} else if (parse_call(h,param.call)) {
-					param.type = Param::TYPE::CALL;
+					param.type = Value::TYPE::CALL;
 					params.push_back(param);
 				} else if (parse_name(h,name)) {
-					param.type = Param::TYPE::STRING;
+					param.type = Value::TYPE::STRING;
 					param.string = name;
 					params.push_back(param);
 				} else if (consume(z,FLAG::SPLIT)) {
 
 				} else if (consume(z, FLAG::PR)) {
-					
+					break;
 				} else if (equal(z,FLAG::PACK_R)) {
 					break;
 				}

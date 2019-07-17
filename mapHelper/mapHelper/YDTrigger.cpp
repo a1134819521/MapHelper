@@ -427,16 +427,16 @@ bool YDTrigger::onParamterToJass(Parameter* paramter, ActionNodePtr node, std::s
 			output += variable;
 			return true;
 		}
-		case "YDWEGetAnyTypeLocalVariable"s_hash:
-		{
-			std::string var_name = parameters[0]->value;
-			std::string var_type = paramter->type_name;
-
-			auto mapPtr = node->getLastVarTable();
-			mapPtr->emplace(var_name, var_type);
-			output += getLocal(node, var_name, var_type);
-			return true;
-		}
+		//case "YDWEGetAnyTypeLocalVariable"s_hash:
+		//{
+		//	std::string var_name = parameters[0]->value;
+		//	std::string var_type = paramter->type_name;
+		//
+		//	auto mapPtr = node->getLastVarTable();
+		//	mapPtr->emplace(var_name, var_type);
+		//	output += getLocal(node, var_name, var_type);
+		//	return true;
+		//}
 		case "YDWEGetAnyTypeLocalArray"s_hash:
 		{
 			std::string var_name = parameters[0]->value;
@@ -553,17 +553,17 @@ bool YDTrigger::onParamterToJass(Parameter* paramter, ActionNodePtr node, std::s
 					std::string var_name = action->name;
 					std::string var_type = "AUTO_" + editor.getBaseType(paramter->type_name);
 
-					auto mapPtr = parentPtr->getVarTable();
-
-					mapPtr->emplace(var_name, var_type);
-
-					//如果flag = 1 表示是在传参区 跟父节点是相同的环境
-					//flag == 2 表示是在 传参后的动作区 则返回局部变量代码
-					if (flag == 2)
-					{
-						output += getLocal(ptr, var_name, var_type);
-						return true;
-					}
+					//auto mapPtr = parentPtr->getVarTable();
+					//
+					//mapPtr->emplace(var_name, var_type);
+					//
+					////如果flag = 1 表示是在传参区 跟父节点是相同的环境
+					////flag == 2 表示是在 传参后的动作区 则返回局部变量代码
+					//if (flag == 2)
+					//{
+					//	output += getLocal(ptr, var_name, var_type);
+					//	return true;
+					//}
 				}
 				
 				ptr = parentPtr;
