@@ -64,7 +64,7 @@
     "YDWEGetAnyTypeLocalVariable" : {
         "Type" : "Value",
         "AutoParam" : [
-            "{map_set(get(0),bind(YDWESetAnyTypeLocalVariable,get_return_type(),to_string(get(0)),bind(YDWEGetAnyTypeLocalVariable,get_return_type(),to_string(get(0)))))}"
+            "{map_set(get(1),bind(YDWESetAnyTypeLocalVariable,get_return_type(),to_string(get(0)),bind(YDWEGetAnyTypeLocalVariable,get_return_type(),to_string(get(0)))))}"
         ],
         "Scripts" : {
             "default" : [

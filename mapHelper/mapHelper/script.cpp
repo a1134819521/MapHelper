@@ -22,7 +22,7 @@ namespace script {
 		fs::path current = buffer;
 		current.remove_filename();
 
-		current = "E:\\MapHelper_git";
+		current = "D:\\MapHelper_git";
 
 		if (!group.load(current / "group.json")) {
 			std::cout << "json¶ÁÈ¡Ê§°Ü\n";
@@ -524,16 +524,6 @@ namespace script {
 				return true;
 			}
 
-			//case "bind"s_hash: {
-			//	if (params.size() == 0)
-			//		return false;
-			//
-			//	if (params[0].type != Value::TYPE::BIND)
-			//		return false;
-			//
-			//	return call_bind(params[0].bind, info, result);
-			//};
-
 			case "map_set"s_hash: {
 				if (params.size() != 2)
 					return false;
@@ -572,18 +562,16 @@ namespace script {
 				str += spaces[space_stack];
 
 				if (value.type == Value::TYPE::BIND) {
-					return call_bind(params[0].bind, info, result);
-				}
-				else if (value.type == Value::TYPE::STRING) {
-					str += value.string;
-				}
-				else if (value.type == Value::TYPE::UINT) {
-					str += std::to_string(value.uint);
-				} else {
-					if (value.type == Value::TYPE::CALL) {
-						//call_bind(params[0].bind, info, result);
+					Value ret;
+					if (call_bind(value.bind, info, ret)) {
+						str += ret.string;
 					}
-					//str += param2string(value);
+				} else if (value.type == Value::TYPE::STRING) {
+					str += value.string;
+				} else if (value.type == Value::TYPE::UINT) {
+					str += std::to_string(value.uint);
+				} else if (value.type == Value::TYPE::CALL) {
+					str += param2string(value);
 				}
 
 				result.type = Value::STRING;
@@ -603,14 +591,11 @@ namespace script {
 						if (call_bind(value.bind, info, ret)) {
 							str += ret.string;
 						}
-					}
-					else if (value.type == Value::TYPE::STRING) {
+					} else if (value.type == Value::TYPE::STRING) {
 						str += value.string;
-					}
-					else if (value.type == Value::TYPE::UINT) {
+					} else if (value.type == Value::TYPE::UINT) {
 						str += std::to_string(value.uint);
-					}
-					else if (value.type == Value::TYPE::CALL) {
+					} else if (value.type == Value::TYPE::CALL) {
 						str += param2string(value);
 					}
 					str += "\n";
@@ -632,6 +617,19 @@ namespace script {
 			return false;
 		}
 
+		//script::ScriptInfo parent_info;
+		//
+		//if (!find_script(info.node, *info.node->getName(), parent_info)) {
+		//	return false;
+		//}
+		//parent_info.node = info.node;
+		//parent_info.parameter = info.parameter;
+		//parent_info.pre_actions = info.pre_actions;
+		//	
+		//if (!parent_info.script) {
+		//	return false;
+		//}
+
 		auto action_def = group.get_action_def(bind->name);
 		if (!action_def) {
 			return false;
@@ -641,6 +639,7 @@ namespace script {
 			return false;
 		}
 		
+
 		auto script = action_def->get_script(info.parent_name);
 		if (!script) {
 			return false;
@@ -662,6 +661,15 @@ namespace script {
 				if (value.type == ValueInfo::CODE) {
 					output += *value.code;
 				} else {
+					if (value.type == ValueInfo::TYPE::CALL) {
+						if (value.call->name_id == "get_value"s_hash) {
+							Value ret;
+							if (call_func(value.call, info, ret)) {
+								output += ret.string;
+								continue;;
+							}
+						}
+					}
 					if (count < params.size()) {
 						const Value& value = params[count];
 						if (value.type == Value::TYPE::BIND) {
