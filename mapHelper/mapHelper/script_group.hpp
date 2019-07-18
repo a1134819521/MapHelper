@@ -66,7 +66,8 @@ namespace script {
 		ActionDef()
 			:m_init(0),
 			m_auto_param(0),
-			m_is_group(0)
+			m_is_group(0),
+			m_have_func(0)
 		{ }
 
 		bool load(const Json& json) {
@@ -185,7 +186,10 @@ namespace script {
 			m_script = std::make_shared<Handler>();
 
 			script::Parser parser(script.c_str());
-			parser.parse(*m_script);
+			if (parser.parse(*m_script)) {
+				m_have_func = m_script->have_func;
+			}
+
 
 			return true;
 		}
@@ -284,6 +288,9 @@ namespace script {
 			return true;
 		}
 
+		bool have_func() {
+			return m_have_func;
+		}
 		bool is_auto_param() {
 			return m_auto_param;
 		}
@@ -356,6 +363,7 @@ namespace script {
 		bool m_init;
 		bool m_auto_param;
 		bool m_is_group;
+		bool m_have_func;
 
 	};
 	typedef std::shared_ptr<ActionDef> ActionDefPtr;

@@ -141,13 +141,9 @@ ActionNodePtr ActionNode::getBranchNode()
 		if (parent->m_action)
 		{
 			auto def_ptr = group.get_action_def(*parent->getName());
-			if (def_ptr) 
+			if (def_ptr && (def_ptr->have_func() || (def_ptr->is_auto_param() && def_ptr->is_group())))
 			{
-				auto group_ptr = def_ptr->get_group();
-				if (group_ptr && parent->m_nameId != "IfThenElseMultiple"s_hash)
-				{
-					break;
-				}
+				break;
 			}
 	
 			for (size_t k = 0; k < parent->m_action->param_count; k++) 

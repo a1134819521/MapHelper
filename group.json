@@ -13,8 +13,7 @@
         "{get_group(0)} 解包动作组 0为动作组索引",
         "{bind(name,args...)} 参数捆绑 将动作名 跟参数打包成对象",
         "{map_set(key,obj)} 按key储存数据",
-        "{map_get(key)} 按key 读取数据",
-        "{map_each()} 返回所有数据 并清空",
+        "{map_each(0)} 以指定的动作组id 执行捆绑的数据 返回 并清空",
 
         "Type 为动作类型",
         "Group 是动作组 指多个动作 或多条件 多事件等",
@@ -68,7 +67,7 @@
         ],
         "Scripts" : {
             "default" : [
-                "YDLocal2Get({get_return_type()},{tostring(get(0))})"
+                "YDLocal2Get({get_return_type()},{to_string(get(0))})"
             ],
 
             "trigger" : [
@@ -326,7 +325,7 @@
             "{add_local(ydl_timer,timer)}",
             "set ydl_timer = {get(0)}",
             "{get_group(0)}",
-            "{map_each()}",
+            "{map_each(0)}",
             "call TimerStart(ydl_timer,{get(1)},{get(2)},function {func_name(1)})"
         ]
     },
@@ -434,7 +433,6 @@
         "Group" : [ 
             {
                 "Action" : "动作",
-                "AutoParam" : true,
                 "handle" : "ydl_trigger"
             }
         ],

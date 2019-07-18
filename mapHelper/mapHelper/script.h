@@ -23,14 +23,15 @@ namespace script {
 		//比如动作在逆天触发器的事件中是 0 参数是 1 动作是2
 		uint32_t group_id;
 
-		//当动作类型 是动作 或者 值时 所在的自动传参动作组的名字
-		std::string parent_name;
 
 		//当前动作模板的函数名的表 实现func_name(1) 时记录名字
 		FuncTablePtr func_name_table;
 
 		//当前动作所在的节点
 		ActionNodePtr node;
+
+		//带传参的父节点
+		ActionNodePtr parent;
 
 		//如果是值 那么就会有个参数器指针
 		Parameter* parameter = nullptr;

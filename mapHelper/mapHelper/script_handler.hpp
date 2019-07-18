@@ -54,6 +54,7 @@ namespace script {
 	};
 
 	struct Handler {
+		bool have_func = false;
 		std::vector<LineInfo> lines;
 		int pos = -1;
 		Handler() {
@@ -67,6 +68,9 @@ namespace script {
 
 		void accept_line_type(LineInfo::TYPE type) {
 			lines[pos].type = type;
+			if (type == LineInfo::TYPE::FUNCTION) {
+				have_func = true;
+			}
 		}
 
 		void accept_value(const ValueInfo& info) {

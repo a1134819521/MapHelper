@@ -22,7 +22,7 @@ namespace script {
 		fs::path current = buffer;
 		current.remove_filename();
 
-		current = "D:\\MapHelper_git";
+		current = "E:\\MapHelper_git";
 
 		if (!group.load(current / "group.json")) {
 			std::cout << "json读取失败\n";
@@ -38,8 +38,6 @@ namespace script {
 		if (!action_def) {
 			return false;
 		}
-
-		
 
 		uint32_t group_id = 0;
 		ActionInoListPtr group_ptr;
@@ -60,43 +58,63 @@ namespace script {
 			if (!script || !group_ptr) {
 				return false;
 			}
+			ActionNodePtr branch = node->getBranchNode();
+			ActionNodePtr parent = branch->getParentNode();
 
-			info = { script, action_def ,group_ptr ,group_id,name, func_table };
+
+			info = { script, action_def ,group_ptr ,branch->getActionId(), func_table,nullptr,parent };
 			return true;
 
 		} else {
 			//否则是 动作或者值 则根据位置 来决定使用的脚本模板
 
 			ActionNodePtr branch = node->getBranchNode();
+
 			ActionNodePtr parent = branch->getParentNode();
+
+			bool is_trigger = true;
 
 			const char* parent_name = "default";
 
-			if (action_def->is_auto_param()) {
-				if (!parent || parent->isRootNode()) {//如果是在触发中
-					parent_name = "trigger";
+			std::function<void(ActionNodePtr)> find_parent = [&](ActionNodePtr ptr) {
+				parent = ptr->getParentNode();
+				if (!parent || parent->isRootNode()) {
+					if (is_trigger) {
+						parent_name = "trigger";
+					} else {
+						parent_name = "default";
+					}
 				} else {
-					ActionNodePtr ptr = branch;
+					auto parent_def_ptr = group.get_action_def(*parent->getName());
 
-					//否则搜素上一层带传参的父节点
-					while (!ptr->isRootNode()) {
-						ActionNodePtr parent_ptr = ptr->getParentNode();
-						auto parent_def_ptr = group.get_action_def(*parent_ptr->getName());
-						if (parent_def_ptr && parent_def_ptr->is_auto_param()) {
+					if (parent_def_ptr && (parent_def_ptr->have_func() || (parent_def_ptr->is_auto_param() && parent_def_ptr->is_group()) )) {
+						//找到所在的逆天计时器动作组
+						if (parent_def_ptr->is_auto_param()) {
 
 							group_id = ptr->getActionId();
 							group_ptr = parent_def_ptr->get_group();
-							parent_name = parent_ptr->getName()->c_str();
+							parent_name = parent->getName()->c_str();
 
-							break;
+							//如果在参数区 并且是 值类型 则再往上一层
+							if (group_ptr && !(*group_ptr)[group_id].is_child && def_type == ActionDef::TYPE::VALUE) {
+								find_parent(parent);
+							}
+						} else {
+							//如果拥有函数 且不是自动传参的 则继续搜索上一层 并且标记非触发根部位置
+							is_trigger = false;
+							find_parent(parent);
 						}
-						ptr = parent_ptr;
+					} else {
+						//如果不是带函数的动作组 则往上一层搜索
+						find_parent(parent);
 					}
 				}
-			}
+			};
+			find_parent(branch);
+
 			script = action_def->get_script(parent_name);
 
-			info = { script, action_def ,group_ptr ,group_id, parent_name, func_table };
+			info = { script, action_def ,group_ptr ,group_id, func_table,nullptr,parent };
 			return true;
 		}
 
@@ -119,9 +137,19 @@ namespace script {
 		auto script = info.script;
 
 		ActionDefPtr action_def = info.action_def;
+
+		//如果该值 是自动传参的值 则判断条件后 执行传参脚本
 		if (action_def->is_auto_param() && action_def->get_type() == ActionDef::TYPE::VALUE) {
+			bool is_child = false;
+			//bool is_root = !info.parent || info.parent->isRootNode();
+
+			if (info.parent && info.group) {
+				auto parent_def = (*info.group)[info.group_id];
+				is_child = parent_def.is_child;
+			}
 			auto auto_script = action_def->get_auto_script();
-			if (auto_script) {
+			//当父节点是 根触发器 或者 是自动传参的子动作 则开始执行传参脚本
+			if (is_child && auto_script) {
 				info.script = auto_script;
 				Value value;
 				const auto& lines = auto_script->lines;
@@ -136,6 +164,7 @@ namespace script {
 					}
 				}
 			}
+			
 		}
 
 
@@ -435,7 +464,7 @@ namespace script {
 						if (action_info.is_child)
 							str += spaces[space_stack];
 						else
-							str += spaces[space_stack - 1];
+							str += spaces[max(1,space_stack - 1)];
 					}
 
 					//事件需要默认一个参数
@@ -490,10 +519,6 @@ namespace script {
 				}
 				space_stack--;
 
-				//如果是自动传参的动作组 并且解包的是 参数代码
-				if (info.action_def->is_auto_param() && !action_info.is_child) {
-
-				}
 				result.string = str;
 				result.type = Value::STRING;
 				return true;
@@ -541,48 +566,19 @@ namespace script {
 					last_table->emplace(key, value);
 				}
 			
-				
-				
-				return true;
-			}
-			
-			case "map_get"s_hash: {
-				if (params.size() == 0)
-					return false;
-
-				std::string key = param2string(params[0]);
-				auto last_table = node->getLastVarTable();
-				auto it = last_table->find(key);
-				if (it == last_table->end()) {
-					return false;
-				}
-				Value& value = it->second;
-				std::string& str = result.string;
-
-				str += spaces[space_stack];
-
-				if (value.type == Value::TYPE::BIND) {
-					Value ret;
-					if (call_bind(value.bind, info, ret)) {
-						str += ret.string;
-					}
-				} else if (value.type == Value::TYPE::STRING) {
-					str += value.string;
-				} else if (value.type == Value::TYPE::UINT) {
-					str += std::to_string(value.uint);
-				} else if (value.type == Value::TYPE::CALL) {
-					str += param2string(value);
-				}
-
-				result.type = Value::STRING;
 				return true;
 			}
 
 			case "map_each"s_hash: {
+				if (params.size() == 0)
+					return false;
+
+				uint32_t index = param2uint(params[0]);
+
 				auto last_table = node->getLastVarTable();
 				auto table = node->getVarTable();
 				std::string& str = result.string;
-
+				info.group_id = index;
 				for (auto&[k, value] : *last_table) {
 					str += spaces[space_stack];
 
@@ -617,30 +613,80 @@ namespace script {
 			return false;
 		}
 
-		//script::ScriptInfo parent_info;
-		//
-		//if (!find_script(info.node, *info.node->getName(), parent_info)) {
-		//	return false;
-		//}
-		//parent_info.node = info.node;
-		//parent_info.parameter = info.parameter;
-		//parent_info.pre_actions = info.pre_actions;
-		//	
-		//if (!parent_info.script) {
-		//	return false;
-		//}
-
 		auto action_def = group.get_action_def(bind->name);
 		if (!action_def) {
 			return false;
 		}
-			
-		if (action_def->get_type() == ActionDef::TYPE::GROUP) {
+		auto type = action_def->get_type();
+		if (type == ActionDef::TYPE::GROUP) {
 			return false;
 		}
 		
+		ScriptInfo* script_info = &info;
+		std::shared_ptr<std::string> name_ptr;
+		const char* parent_name;
 
-		auto script = action_def->get_script(info.parent_name);
+		if (type == ActionDef::TYPE::VALUE) {
+
+			ScriptInfo* script_info = &ScriptInfo(info);
+			uint32_t group_id = 0;
+			ActionInoListPtr group_ptr;
+			
+			ActionNodePtr branch = info.node->getBranchNode();
+
+			ActionNodePtr parent = branch->getParentNode();
+
+			bool is_trigger = true;
+			parent_name = "default";
+	
+			std::function<void(ActionNodePtr)> find_parent = [&](ActionNodePtr ptr) {
+				parent = ptr->getParentNode();
+				if (!parent || parent->isRootNode()) {
+					if (is_trigger) {
+						parent_name = "trigger";
+					}
+					else {
+						parent_name = "default";
+					}
+				}
+				else {
+					auto parent_def_ptr = group.get_action_def(*parent->getName());
+
+					if (parent_def_ptr && (parent_def_ptr->have_func() || (parent_def_ptr->is_auto_param() && parent_def_ptr->is_group()))) {
+						//找到所在的逆天计时器动作组
+						if (parent_def_ptr->is_auto_param()) {
+
+							group_id = ptr->getActionId();
+							group_ptr = parent_def_ptr->get_group();
+							parent_name = parent->getName()->c_str();
+
+							//如果在参数区 并且是 值类型 则再往上一层
+							if (group_ptr && !(*group_ptr)[group_id].is_child && type == ActionDef::TYPE::VALUE) {
+								find_parent(parent);
+							}
+						}
+						else {
+							//如果拥有函数 且不是自动传参的 则继续搜索上一层 并且标记非触发根部位置
+							is_trigger = false;
+							find_parent(parent);
+						}
+					}
+					else {
+						//如果不是带函数的动作组 则往上一层搜索
+						find_parent(parent);
+					}
+				}
+			};
+			find_parent(branch);
+
+			name_ptr = std::make_shared<std::string>(parent_name);
+		
+		} else {
+			name_ptr = info.node->getName();
+		}
+		
+		
+		auto script = action_def->get_script(*name_ptr);
 		if (!script) {
 			return false;
 		}
@@ -664,7 +710,7 @@ namespace script {
 					if (value.type == ValueInfo::TYPE::CALL) {
 						if (value.call->name_id == "get_value"s_hash) {
 							Value ret;
-							if (call_func(value.call, info, ret)) {
+							if (call_func(value.call, *script_info, ret)) {
 								output += ret.string;
 								continue;;
 							}
@@ -674,7 +720,7 @@ namespace script {
 						const Value& value = params[count];
 						if (value.type == Value::TYPE::BIND) {
 							Value ret;
-							if (call_bind(value.bind, info, ret)) {
+							if (call_bind(value.bind, *script_info, ret)) {
 								output += ret.string;
 							}
 						} else {
