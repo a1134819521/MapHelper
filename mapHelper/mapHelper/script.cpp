@@ -22,7 +22,7 @@ namespace script {
 		fs::path current = buffer;
 		current.remove_filename();
 
-		current = "E:\\MapHelper_git";
+		current = "D:\\MapHelper_git";
 
 		if (!group.load(current / "group.json")) {
 			std::cout << "json读取失败\n";
@@ -62,7 +62,7 @@ namespace script {
 			ActionNodePtr parent = branch->getParentNode();
 
 
-			info = { script, action_def ,group_ptr ,branch->getActionId(), func_table,nullptr,parent };
+			info = { script, action_def ,group_ptr ,(int)branch->getActionId(), func_table,nullptr,parent };
 			return true;
 
 		} else {
@@ -114,7 +114,7 @@ namespace script {
 
 			script = action_def->get_script(parent_name);
 
-			info = { script, action_def ,group_ptr ,group_id, func_table,nullptr,parent };
+			info = { script, action_def ,group_ptr ,(int)group_id, func_table,nullptr,parent };
 			return true;
 		}
 
@@ -292,7 +292,7 @@ namespace script {
 
 		ActionInoListPtr& group_ptr = info.group;
 
-		uint32_t& group_id = info.group_id;
+		int& group_id = info.group_id;
 
 		auto ydtrigger = YDTrigger::getInstance();
 
@@ -333,10 +333,10 @@ namespace script {
 			case "get_value"s_hash: {
 				if (params.size() == 0)
 					return false;
-
+			
 				if (group_ptr) {
 					const std::string& key = param2string(params[0]);
-					auto& info = (*group_ptr)[group_id];
+					auto& info = (*group_ptr)[max(0,group_id)];
 					std::string value;
 					if (group_id < group_ptr->size() && info.get_value(key, value)) {
 						result.string = value;
@@ -443,9 +443,11 @@ namespace script {
 					space_stack = 1;
 				}
 
-				auto last_table = node->getLastVarTable();
-				auto table = node->getVarTable();
-
+				//
+				if (info.action_def->is_auto_param()) {
+					auto last_table = node->getLastVarTable();
+				}
+			
 				std::string str;
 
 				for (size_t i = 0; i < list.size(); i++) {
@@ -579,7 +581,7 @@ namespace script {
 				auto table = node->getVarTable();
 				std::string& str = result.string;
 				info.group_id = index;
-				for (auto&[k, value] : *last_table) {
+				for (auto&[k, value] : *table) {
 					str += spaces[space_stack];
 
 					if (value.type == Value::TYPE::BIND) {
@@ -595,7 +597,7 @@ namespace script {
 						str += param2string(value);
 					}
 					str += "\n";
-					table->emplace(k, value);
+					last_table->emplace(k, value);
 				}
 				if (!str.empty()) {
 					str.pop_back();
@@ -629,7 +631,7 @@ namespace script {
 		if (type == ActionDef::TYPE::VALUE) {
 
 			ScriptInfo* script_info = &ScriptInfo(info);
-			uint32_t group_id = 0;
+			int group_id = 0;
 			ActionInoListPtr group_ptr;
 			
 			ActionNodePtr branch = info.node->getBranchNode();
@@ -656,9 +658,11 @@ namespace script {
 						//找到所在的逆天计时器动作组
 						if (parent_def_ptr->is_auto_param()) {
 
-							group_id = ptr->getActionId();
+							group_id = (int)ptr->getActionId();
 							group_ptr = parent_def_ptr->get_group();
 							parent_name = parent->getName()->c_str();
+							info.group = group_ptr;
+							info.group_id = group_id;
 
 							//如果在参数区 并且是 值类型 则再往上一层
 							if (group_ptr && !(*group_ptr)[group_id].is_child && type == ActionDef::TYPE::VALUE) {

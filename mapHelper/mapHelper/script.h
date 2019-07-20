@@ -21,7 +21,7 @@ namespace script {
 
 		//如果当前动作 是 动作组 则是0 否则是 动作或者值 时 group_id是 所在动作组中的子id 
 		//比如动作在逆天触发器的事件中是 0 参数是 1 动作是2
-		uint32_t group_id;
+		int group_id;
 
 
 		//当前动作模板的函数名的表 实现func_name(1) 时记录名字

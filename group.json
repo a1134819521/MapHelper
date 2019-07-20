@@ -357,10 +357,11 @@
             "#endfunction",
 
             "{add_local(ydl_trigger,trigger)}",
-            "set {get_value(handle)} = {get(0)}",
+            "set ydl_trigger = {get(0)}",
             "{get_group(0)}",
             "{get_group(1)}",
-            "call TriggerAddCondition({get_value(handle)},Condition(function {func_name(1)}))"
+            "{map_each(1)}",
+            "call TriggerAddCondition(ydl_trigger,Condition(function {func_name(1)}))"
         ]
     },
 

@@ -258,7 +258,7 @@ VarTablePtr ActionNode::getVarTable()
 
 VarTablePtr ActionNode::getLastVarTable()
 {
-	ActionNode* node = this;
+	ActionNode* node = m_parent.get();
 
 	VarTablePtr retval;
 
@@ -267,33 +267,21 @@ VarTablePtr ActionNode::getLastVarTable()
 
 	while (node)
 	{
-		if (node->m_hashVarTablePtr.get())
+		auto def_ptr = group.get_action_def(*node->getName());
+
+		if ((node->isRootNode() || (def_ptr && def_ptr->is_auto_param() && def_ptr->is_group()) ))
 		{
 			retval = node->m_hashVarTablePtr;
-			break;
-		}
-		else
-		{
-			auto def_ptr = group.get_action_def(*node->getName());
-
-			if (node->m_action != m_action 
-				&&  (node->isRootNode() || (def_ptr && def_ptr->is_auto_param() && def_ptr->is_group()) )
-				)
+			if (!retval)
 			{
 				retval = VarTablePtr(new std::map<std::string, script::Value>);
 				node->m_hashVarTablePtr = retval;
-				break;
 			}
+			break;
 		}
+		
 		node = node->m_parent.get();
 	}
-
-	if (retval.get() == nullptr)
-	{
-		retval = VarTablePtr(new std::map<std::string, script::Value>);
-		m_hashVarTablePtr = retval;
-	}
-
 	return retval;
 }
 
