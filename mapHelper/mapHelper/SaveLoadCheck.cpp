@@ -124,7 +124,7 @@ void SaveLoadCloseLog()
 	g_SaveLoadCheck.CloseLog();
 }
 
-void SaveLoadError(ActionNodePtr node, std::string name, std::string type)
+std::string SaveLoadError(ActionNodePtr node, std::string name, std::string type)
 {
 	const size_t len = 0x400;
 	auto buffer = std::vector<char>(len);
@@ -133,4 +133,5 @@ void SaveLoadError(ActionNodePtr node, std::string name, std::string type)
 	auto log = std::string(buffer.data());
 	printf("%s\n", base::u2a(log).c_str());
 	g_SaveLoadCheck.WriteLog(log);
+	return "YDTrigger Error: 你使用了局部变量“" + name + "”(类型:" + type + ")，但你在其他地方使用的是局部变量“" + name + "”(类型:" + SaveLoadCheck_Get(name) + ")。";;
 }
