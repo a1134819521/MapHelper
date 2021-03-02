@@ -437,6 +437,19 @@ int WorldEditor::saveScript()
 	return ret;
 }
 
+void seach_file(fs::path path)
+{
+	std::cout << path.string() << std::endl;
+	for (auto &child : fs::directory_iterator(path)) {
+		std::cout << child.path().string() << std::endl;
+		if (fs::is_directory(child.status())) {
+			seach_file(child);
+		}
+		else {
+			std::cout << child.path().string() << std::endl;
+		}
+	}
+}
 
 
 int WorldEditor::saveArchive()
@@ -463,7 +476,10 @@ int WorldEditor::saveArchive()
 
 	clock_t start = clock();
 
-
+	/*
+	* test
+	*/
+	//seach_file(pathTemp);
 	int ret = this_call<int>(getAddress(0x0055D720), getEditorData(), pathTemp.string().c_str(), 1);
 
 	if (ret)
@@ -595,7 +611,7 @@ int WorldEditor::customSaveDoodas(const char* path)
 
 		//这里应该判断有没有设置过掉落物品
 		//if (variableTable.find(buffer) == variableTable.end())
-		if (unit->item_setting_count <= 0 && unit->item_table_index == -1)
+		if (unit->item_setting_count <= 0 && unit->item_table_index == -1 && variableTable.find(buffer) == variableTable.end())
 		{
 			flag |= 0x2;
 		}
